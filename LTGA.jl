@@ -1,6 +1,9 @@
 ############## Globals Section
-number_of_evaluations           = 0
 const problem_index             = 0
+
+number_of_evaluations           = 0
+number_of_generations           = 0
+no_improvement_stretch          = 0
 # number_of_parameters          = 20
 # population_size               = 10
 #
@@ -14,15 +17,15 @@ const problem_index             = 0
 # offspring                     = BitArray(offspring_size, number_of_parameters)
 # objective_values_offspring    = Array{Float64}(population_size)
 # constraint_values_offspring   = Array{Float64}(population_size)
-# best_prevgen_solution         = BitArray(number_of_parameters)
+best_prevgen_solution           = Array{Bool}(number_of_parameters)
+best_prevgen_objective_value    = 0.0
+best_prevgen_constraint_value   = 0.0
 # best_ever_evaluated_solution  = BitArray(number_of_parameters)
 # MI_matrix                     = Array{Float64}(number_of_parameters, number_of_parameters)
 
 
 
 
-function generateNewSolution( which::Int64, obj::Array{Float64}, con::Array{Float64})
-end
 
 
 ######## Section Initialize
@@ -126,6 +129,129 @@ function deceptiveTrapKLooseEncodingFunctionProblemEvaluation( parameters::Array
 end
 ############################
 
+############# Section Crossover
+
+function generateAndEvaluateNewSolutionsToFillOffspring(population::Array{Bool}, offspring::Array{Bool},  objective_values::Array{Float64}, constraint_values::Array{Float64}, objective_values_offspring::Array{Float64}, constraint_values_offspring::Array{Float64} ))
+  population_size, number_of_parameters = size(population)
+  offspring_size, number_of_parameters  = size(offspring)
+
+  objective_value = 0.0
+  constraint_value = 0.0
+
+  for i = 1:offspring_size
+    (solution, obj, con ) = generateNewSolution(population, i % population_size, objective_values, constraint_values)
+
+    for j = 1:number_of_parameters
+      offspring[i,j] = solution[j]
+    end
+    objective_values_offspring[i] = obj
+    constraint_values_offspring[i] = con
+  end
+end
+
+
+function generateNewSolution(population::Array{Bool}, which::Int64,  objective_values::Array{Float64}, constraint_values::Array{Float64}, model::Array{Array{Int64}} )
+  population_size, number_of_parameters = size(population)
+  model_length = length(model)
+  solution_has_changed = false
+  is_unchanged = true
+  result = Array{Bool}(number_of_parameters)
+  backup = Array{Bool}(number_of_parameters)
+
+  result = population[ which , 1:number_of_parameters]
+  obj = objective_values[ which ]
+  con = constraint_values[ which ]
+
+  backup = result
+  obj_backup = obj
+  con_backup = con
+
+  # optimal mixing with random donors
+  for i = (model_length - 1):-1:1
+    donor_index = rand(1:population_size)
+
+    number_of_indices = length(model[ i ])
+    result = population[ donor_index , model[ i , 1:number_of_indices ] ]
+
+    is_unchanged = true
+    for j = 1:number_of_indices
+      if backup[ model[ i, j ] ] != result[ model[ i, j]]
+        is_unchanged = false
+        break
+      end
+    end
+
+    if is_unchanged == false
+
+      obj, con = installedProblemEvaluation( problem_index, result)
+      if betterFitness( obj, con, obj_backup, con_backup) || equalFitness( obj, con, obj_backup, con_backup)
+        for j = 1:number_of_indices
+          backup[ model[ i, j ] ] = result[ model[ i, j ] ]
+        end
+
+        obj_backup = obj
+        con_backup = con
+
+        solution_has_changed = true
+      end
+    else
+      for j = 1:number_of_indices
+        result[ model[ i, j ] ] = backup[ model[ i, j ] ]
+      end
+        obj = obj_backup
+        con = con_backup
+    end
+  end
+  # TODO: FORCED IMPROVEMENTS PART
+  if (!solution_has_changed || (no_improvement_stretch > (1 + log(population_size) / log(10))))
+    solution_has_changed = false
+    for i = model_length-1 : -1 : 1
+      number_of_indices = length(model[ i ])
+      for j = 1:number_of_indices
+        result[ model[ i, j ] ] = best_prevgen_solution[ model[ i, j ] ]
+      end
+
+      is_unchanged = true
+      for j = 1:number_of_indices
+        if backup[ model[ i, j ] ] != result[ model[ i, j]]
+          is_unchanged = false
+          break
+        end
+      end
+
+      if is_unchanged == false
+        obj, con = installedProblemEvaluation( problem_index, result)
+        if betterFitness( obj, con, obj_backup, con_backup)
+          for j = 1:number_of_indices
+            backup[ model[ i, j ] ] = result[ model[ i, j ] ]
+          end
+
+          obj_backup = obj
+          con_backup = con
+
+          solution_has_changed = true
+        end
+      else
+        for j = 1:number_of_indices
+          result[ model[ i, j ] ] = backup[ model[ i, j ] ]
+        end
+          obj = obj_backup
+          con = con_backup
+      end
+    end
+    if solution_has_changed != true
+      if betterFitness( best_prevgen_objective_value, best_prevgen_constraint_value, obj, con)
+        solution_has_changed = true
+      end
+
+      result = best_prevgen_solution
+      obj = best_prevgen_objective_value
+      con = best_prevgen_constraint_value
+    end
+  end
+  return solution, objective_value, constraint_value
+end
+
 
 function runGA()
 end
@@ -149,4 +275,11 @@ function main(  problem_index,
             end
 
 
-########################### test section
+
+
+########################### snippets section
+population = Array{Bool}(10,20)
+con = Array{Float64}(20)
+obj = Array{Float64}(20)
+
+initializedPopulation = initializePopulationAndFitnessValues(population, obj, con)
