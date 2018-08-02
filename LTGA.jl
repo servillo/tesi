@@ -217,13 +217,13 @@ function generateNewSolution(population::Array{Bool}, which::Int64,  objective_v
         con_backup = con
 
         solution_has_changed = true
-      end
-    else
-      for j = 1:number_of_indices
-        result[ model[ i ][ j ] ] = copy(backup[ model[ i ][ j ] ])
-      end
+      else
+        for j = 1:number_of_indices
+          result[ model[ i ][ j ] ] = copy(backup[ model[ i ][ j ] ])
+        end
         obj = obj_backup
         con = con_backup
+      end
     end
   end
   # TODO: FORCED IMPROVEMENTS PART
@@ -276,7 +276,7 @@ function generateNewSolution(population::Array{Bool}, which::Int64,  objective_v
   return result, obj, con
 end
 
-function betterFitness(objective_value_x::Float64, constraint_value_x::Float64, objective_value_y::Float64, constraint_value_y::Float64 )
+function betterFitness(objective_value_x::Float64, constraint_value_x::Float64, objective_value_y::Float64, constraint_value_y::Float64 )::Bool
   result = false
   if (constraint_value_x > 0)
     if (constraint_value_y > 0)
@@ -292,6 +292,15 @@ function betterFitness(objective_value_x::Float64, constraint_value_x::Float64, 
         result = true
       end
     end
+  end
+  return result
+end
+
+function equalFitness(objective_value_x::Float64, constraint_value_x::Float64, objective_value_y::Float64, constraint_value_y::Float64 )::Bool
+  result = false
+
+  if (constraint_value_x == constraint_value_y && objective_value_x == objective_value_y)
+    result = true
   end
   return result
 end
