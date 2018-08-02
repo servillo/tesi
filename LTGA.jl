@@ -2,7 +2,7 @@ module LTGA
 ############## Globals Section
 
 
-function init(index::Int64, nParams::Int64, popSize::Int64)
+function init(index::Int64, nParams::Int64, popSize::Int64)::Void
   if is_inited
     println("LTGA is already initialized")
   else
@@ -18,11 +18,13 @@ function init(index::Int64, nParams::Int64, popSize::Int64)
     global constraint_values_offspring     = Array{Float64}(population_size)
     global best_prevgen_solution           = Array{Bool}(number_of_parameters)
   end
+  return
 end
 
 function isInited()::Bool
    return is_inited
 end
+
 is_inited                       = false
 
 problem_index                   = 0
@@ -69,7 +71,7 @@ end
 #########
 
 ######### Section Evaluation
-function installedProblemEvaluation( index::Int64, parameters::Array{Bool} )
+function installedProblemEvaluation( index::Int64, parameters::Array{Bool} )::Tuple{Float64, Float64}
   global number_of_evaluations += 1
 
   objective_value, constraint_value = 0.0, 0.0
@@ -93,7 +95,7 @@ function switchProblemEvaluation( index::Int64 )::Function
   end
 end
 
-function onemaxFunctionProblemEvaluation( parameters::Array{Bool} )
+function onemaxFunctionProblemEvaluation( parameters::Array{Bool} )::Tuple{Float64, Float64}
   result = 0.0
   for i = 1:length(parameters)
     result += (parameters[i] == true) ? 1 : 0
@@ -150,7 +152,7 @@ end
 
 ############# Section Crossover
 
-function generateAndEvaluateNewSolutionsToFillOffspring(population::Array{Bool}, offspring::Array{Bool},  objective_values::Array{Float64}, constraint_values::Array{Float64}, objective_values_offspring::Array{Float64}, constraint_values_offspring::Array{Float64} , model)
+function generateAndEvaluateNewSolutionsToFillOffspring!(population::Array{Bool}, offspring::Array{Bool},  objective_values::Array{Float64}, constraint_values::Array{Float64}, objective_values_offspring::Array{Float64}, constraint_values_offspring::Array{Float64} , model)::Void
   population_size, number_of_parameters = size(population)
   offspring_size, number_of_parameters  = size(offspring)
 
@@ -165,10 +167,11 @@ function generateAndEvaluateNewSolutionsToFillOffspring(population::Array{Bool},
     objective_values_offspring[i] = obj
     constraint_values_offspring[i] = con
   end
+  return
 end
 
 
-function generateNewSolution(population::Array{Bool}, which::Int64,  objective_values::Array{Float64}, constraint_values::Array{Float64}, model::Array{Array{Int64}} )
+function generateNewSolution(population::Array{Bool}, which::Int64,  objective_values::Array{Float64}, constraint_values::Array{Float64}, model::Array{Array{Int64}} )::Tuple{Array{Bool}, Float64, Float64}
   population_size, number_of_parameters = size(population)
   model_length = length(model)
   solution_has_changed = false
