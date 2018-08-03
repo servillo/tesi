@@ -285,6 +285,16 @@ function generateNewSolution!(population::Array{Bool}, which::Int64, result::Arr
   end
   return obj, con
 end
+#############
+
+############# Section Selection
+
+function selectFinalSurvivors!(population::Array{Bool}, offspring::Array{Bool}, objective_values::Array{Float64}, constraint_values::Array{Float64}, objective_values_offspring::Array{Float64}, constraint_values_offspring::Array{Float64})::Void
+    population .= offspring
+    objective_values .= objective_values_offspring
+    constraint_values .= constraint_values_offspring
+    return
+end
 
 function updateBestPrevGenSolution(population::Array{Bool}, objective_values::Array{Float64}, constraint_values::Array{Float64})::Void
     replace_best_prevgen = false
