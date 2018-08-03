@@ -2,27 +2,19 @@ module LTGA
 ############## Globals Section
 
 
-function init(index::Int64, nParams::Int64, popSize::Int64)::Void
-  if is_inited
-    println("LTGA is already initialized")
-  else
-    global is_inited = true
+function setGlobals(index::Int64, nParams::Int64, popSize::Int64)::Void
+    println("LTGA initialized with parameters:\n",
+    "problem_index:         ", index, "\n",
+    "number of parameters:  ", nParams, "\n",
+    "population size:       ", popSize)
+
     global problem_index = index
     global population_size = popSize
     global number_of_parameters = nParams
-    println("LTGA initialized with parameters:\n",
-            "problem_index:         ", index, "\n",
-            "number of parameters:  ", nParams, "\n",
-            "population size:       ", popSize)
 
     global constraint_values_offspring     = Array{Float64}(population_size)
     global best_prevgen_solution           = Array{Bool}(number_of_parameters)
-  end
-  return
-end
-
-function isInited()::Bool
-   return is_inited
+    return
 end
 
 is_inited                       = false
@@ -47,28 +39,52 @@ best_prevgen_solution            = []
 best_prevgen_objective_value    = 0.0
 best_prevgen_constraint_value   = 0.0
 # best_ever_evaluated_solution  = BitArray(number_of_parameters)
-# MI_matrix                     = Array{Float64}(number_of_parameters, number_of_parameters)
 
 
 
 ######## Section Initialize
-function initializePopulationAndFitnessValues( population::Array{Bool}, objective_values::Array{Float64}, constraint_values::Array{Float64} )
+function initializeFitnessValues( population::Array{Bool}, objective_values::Array{Float64}, constraint_values::Array{Float64} )::Void
   population_size, number_of_parameters = size(population)
 
   for i = 1:population_size
-    # for j = 1:number_of_parameters
-    #   population[ i , j ] = rand(Bool)
-    # end
-
     obj, con = installedProblemEvaluation( problem_index, population[ i , 1:number_of_parameters ] )
     objective_values[i]   = obj
     constraint_values[i]  = con
   end
-
-  # TODO: useless to return the population, it gets modified in place
-  return population
+  return
 end
 #########
+
+######## Section Model
+
+function generateModelForProblemIndex(index::Int64, nparams::Int64)::Array{Array{Int64}}
+    if index == 0
+        return modelForOneMax(nparams)
+    elseif index == 1
+        return modelForDeceptive4Tight(nparams)
+    # elseif index == 2
+    end
+end
+
+function modelForOneMax(nparams::Int64)::Array{Array{Int64}}
+    # model has 1 additional element at last position for compatibility with LT model
+    model = Array{Array{Int64}}(nparams + 1)
+    for i = 1:nparams
+        model[i] = [i]
+    end
+    return model
+end
+
+function modelForDeceptive4Tight(nparams::Int64)::Array{Array{Int64}}
+    number_of_blocks = Int(nparams / 4)
+    # model has 1 additional element at last position for compatibility with LT model
+    model = Array{Array{Int64}}(number_of_blocks + 1)
+    for i = 1:number_of_blocks
+        model[i] = [j for j = 4(i-1) + 1: 4(i-1) + 4]
+    end
+    return model
+end
+##############################
 
 ######### Section Evaluation
 function installedProblemEvaluation( index::Int64, parameters::Array{Bool} )::Tuple{Float64, Float64}
@@ -154,7 +170,7 @@ end
 
 function generateAndEvaluateNewSolutionsToFillOffspring!(population::Array{Bool}, offspring::Array{Bool},  objective_values::Array{Float64}, constraint_values::Array{Float64}, objective_values_offspring::Array{Float64}, constraint_values_offspring::Array{Float64} , model)::Void
   population_size, number_of_parameters = size(population)
-  offspring_size, number_of_parameters  = size(offspring)
+  offspring_size, dummy  = size(offspring)
 
   objective_value = 0.0
   constraint_value = 0.0
@@ -162,7 +178,7 @@ function generateAndEvaluateNewSolutionsToFillOffspring!(population::Array{Bool}
   for i = 1:offspring_size
     (solution, obj, con ) = generateNewSolution(population, i, objective_values, constraint_values, model)
 
-    offspring[i,1:number_of_parameters] = copy(solution[1:number_of_parameters])
+    offspring[i,1:number_of_parameters] = solution
 
     objective_values_offspring[i] = obj
     constraint_values_offspring[i] = con

@@ -1,25 +1,47 @@
-include("LTGA.jl")
 using Gallium
+include("LTGA.jl")
 
-LTGA.isInited()
-LTGA.init(1,20,10)
-
-model = Array{Array{Int64}}(6)
-for i = 1:5
-    model[i] = [j for j = (i-1)*4 + 1:(i-1)*4 + 4]
+function randomPopulation(popSize, nParams)
+    population = Array{Bool}(popSize, nParams)
+    for i = 1:popSize
+        for j = 1:nParams
+            population[ i , j ] = rand(Bool)
+        end
+    end
+    return population
 end
 
-population = Array{Bool}(10,20)
-offspring = Array{Bool}(10,20)
-obj = Array{Float64}(10)
-con = Array{Float64}(10)
-obj_off = Array{Float64}(10)
-con_off = Array{Float64}(10)
+function initializeProblemInstance(index, nParams, population_size)
+    population = randomPopulation(population_size, nParams)
+    offspring = Array{Bool}(population_size, nParams)
+    obj = Array{Float64}(population_size)
+    con = Array{Float64}(population_size)
+    obj_off = Array{Float64}(population_size)
+    con_off = Array{Float64}(population_size)
 
-initializedPopulation = LTGA.initializePopulationAndFitnessValues(population, obj, con)
-LTGA.generateAndEvaluateNewSolutionsToFillOffspring(initializedPopulation, offspring, obj, con, obj_off, con_off, model)
+    # initialize LTGA globals
+    LTGA.setGlobals(index, nParams, population_size)
+
+    # evaluate initial population
+    LTGA.initializeFitnessValues(population, obj, con)
+
+    # generate fixed model
+    model = LTGA.generateModelForProblemIndex(index, nParams)
+
+    return (population, offspring, obj, con, obj_off, con_off, model)
+end
+
+pop, off, obj, con, obj_off, con_off, model = initializeProblemInstance(1, 20, 10)
+
+LTGA.generateAndEvaluateNewSolutionsToFillOffspring!(pop, off, obj, con, obj_off, con_off, model)
 
 
-sol, o, c = LTGA.generateNewSolution(population, 1, obj, con, model )
 
-@enter LTGA.generateNewSolution(population, 1, obj, con, model)
+
+for i = 1:100000
+    LTGA.generateAndEvaluateNewSolutionsToFillOffspring!(initializedPopulation, offspring, obj, con, obj_off, con_off, model)
+    if !((obj_off .== 0) == falses(10))
+        print("iteration", i)
+        break
+    end
+end
