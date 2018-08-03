@@ -172,30 +172,28 @@ function generateAndEvaluateNewSolutionsToFillOffspring!(population::Array{Bool}
   population_size, number_of_parameters = size(population)
   offspring_size, dummy  = size(offspring)
 
-  objective_value = 0.0
-  constraint_value = 0.0
+  solution = Array{Bool}(number_of_parameters)
 
   for i = 1:offspring_size
-    (solution, obj, con ) = generateNewSolution(population, i, objective_values, constraint_values, model)
-
-    offspring[i,1:number_of_parameters] = solution
+    obj, con = generateNewSolution!(population, i, solution, objective_values, constraint_values, model)
 
     objective_values_offspring[i] = obj
     constraint_values_offspring[i] = con
+
+    offspring[i,1:number_of_parameters] .= solution
   end
   return
 end
 
-
-function generateNewSolution(population::Array{Bool}, which::Int64,  objective_values::Array{Float64}, constraint_values::Array{Float64}, model::Array{Array{Int64}} )::Tuple{Array{Bool}, Float64, Float64}
+# modifies a solution in place thru GOM and returns its objective value
+function generateNewSolution!(population::Array{Bool}, which::Int64, result::Array{Bool}, objective_values::Array{Float64}, constraint_values::Array{Float64}, model::Array{Array{Int64}} )::Tuple{Float64, Float64}
   population_size, number_of_parameters = size(population)
   model_length = length(model)
   solution_has_changed = false
   is_unchanged = true
-  result = Array{Bool}(number_of_parameters)
-  backup = Array{Bool}(number_of_parameters)
+  # backup = Array{Bool}(number_of_parameters)
 
-  result = copy(population[ which , 1:number_of_parameters])
+  result .= population[ which , 1:number_of_parameters]
   obj = objective_values[ which ]
   con = constraint_values[ which ]
 
@@ -212,7 +210,7 @@ function generateNewSolution(population::Array{Bool}, which::Int64,  objective_v
     end
     number_of_indices = length(model[i])
 
-    result[model[i][1:number_of_indices]] = copy(population[ donor_index , model[i][1:number_of_indices] ])
+    result[model[i][1:number_of_indices]] .= population[ donor_index , model[i][1:number_of_indices] ]
 
     is_unchanged = true
     for j = 1:number_of_indices
@@ -227,7 +225,7 @@ function generateNewSolution(population::Array{Bool}, which::Int64,  objective_v
       obj, con = installedProblemEvaluation( problem_index, result)
       if betterFitness( obj, con, obj_backup, con_backup) || equalFitness( obj, con, obj_backup, con_backup)
 
-        backup[ model[ i ][ 1:number_of_indices ] ] = copy(result[ model[ i ][ 1:number_of_indices ] ])
+        backup[ model[ i ][ 1:number_of_indices ] ] .= result[ model[ i ][ 1:number_of_indices ] ]
 
         obj_backup = obj
         con_backup = con
@@ -235,7 +233,7 @@ function generateNewSolution(population::Array{Bool}, which::Int64,  objective_v
         solution_has_changed = true
       else
 
-        result[ model[ i ][ 1:number_of_indices ] ] = copy(backup[ model[ i ][ 1:number_of_indices ] ])
+        result[ model[ i ][ 1:number_of_indices ] ] .= backup[ model[ i ][ 1:number_of_indices ] ]
 
         obj = obj_backup
         con = con_backup
@@ -248,7 +246,7 @@ function generateNewSolution(population::Array{Bool}, which::Int64,  objective_v
     for i = model_length-1 : -1 : 1
       number_of_indices = length(model[ i ])
 
-      result[ model[ i ][ 1:number_of_indices ] ] = copy(best_prevgen_solution[ model[ i ][ 1:number_of_indices ] ])
+      result[ model[ i ][ 1:number_of_indices ] ] .= best_prevgen_solution[ model[ i ][ 1:number_of_indices ] ]
 
       is_unchanged = true
       for j = 1:number_of_indices
@@ -262,7 +260,7 @@ function generateNewSolution(population::Array{Bool}, which::Int64,  objective_v
         obj, con = installedProblemEvaluation( problem_index, result)
         if betterFitness( obj, con, obj_backup, con_backup)
 
-          backup[ model[ i ][ 1:number_of_indices ] ] = copy(result[ model[ i ][ 1:number_of_indices ] ])
+          backup[ model[ i ][ 1:number_of_indices ] ] .= result[ model[ i ][ 1:number_of_indices ] ]
 
           obj_backup = obj
           con_backup = con
@@ -270,7 +268,7 @@ function generateNewSolution(population::Array{Bool}, which::Int64,  objective_v
           solution_has_changed = true
         end
       else
-        result[ model[ i ][ 1:number_of_indices ] ] = copy(backup[ model[ i ][ 1:number_of_indices ] ])
+        result[ model[ i ][ 1:number_of_indices ] ] .= backup[ model[ i ][ 1:number_of_indices ] ]
 
         obj = obj_backup
         con = con_backup
@@ -280,13 +278,12 @@ function generateNewSolution(population::Array{Bool}, which::Int64,  objective_v
       if betterFitness( best_prevgen_objective_value, best_prevgen_constraint_value, obj, con)
         solution_has_changed = true
       end
-      result = copy(best_prevgen_solution)
-
+      result .= best_prevgen_solution
       obj = best_prevgen_objective_value
       con = best_prevgen_constraint_value
     end
   end
-  return result, obj, con
+  return obj, con
 end
 
 function betterFitness(objective_value_x::Float64, constraint_value_x::Float64, objective_value_y::Float64, constraint_value_y::Float64 )::Bool
