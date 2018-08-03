@@ -35,7 +35,7 @@ no_improvement_stretch          = 0
 # selection                     = BitArray(population_size, number_of_parameters)
 # offspring                     = BitArray(offspring_size, number_of_parameters)
 # objective_values_offspring    = Array{Float64}(population_size)
-best_prevgen_solution            = []
+best_prevgen_solution           = []
 best_prevgen_objective_value    = 0.0
 best_prevgen_constraint_value   = 0.0
 # best_ever_evaluated_solution  = BitArray(number_of_parameters)
@@ -90,17 +90,18 @@ end
 function installedProblemEvaluation( index::Int64, parameters::Array{Bool} )::Tuple{Float64, Float64}
   global number_of_evaluations += 1
 
-  objective_value, constraint_value = 0.0, 0.0
+  # objective_value, constraint_value = 0.0, 0.0
 
   fitnessEvaluation = switchProblemEvaluation( index )
 
-  (objective_value, constraint_value) = fitnessEvaluation( parameters )
+  # (objective_value, constraint_value) = fitnessEvaluation( parameters )
 
   # TODO: if vtr hit has happened
 
   # TODO: save stats for best solution and running time
 
-  return (objective_value, constraint_value)
+  # return (objective_value, constraint_value)
+  return fitnessEvaluation( parameters )
 end
 
 function switchProblemEvaluation( index::Int64 )::Function
@@ -171,11 +172,12 @@ end
 function generateAndEvaluateNewSolutionsToFillOffspring!(population::Array{Bool}, offspring::Array{Bool},  objective_values::Array{Float64}, constraint_values::Array{Float64}, objective_values_offspring::Array{Float64}, constraint_values_offspring::Array{Float64} , model)::Void
   population_size, number_of_parameters = size(population)
   offspring_size, dummy  = size(offspring)
+  model_length = length(model)
 
   solution = Array{Bool}(number_of_parameters)
 
   for i = 1:offspring_size
-    obj, con = generateNewSolution!(population, i, solution, objective_values, constraint_values, model)
+    obj, con = generateNewSolution!(population, i, population_size, number_of_parameters, model_length, solution, objective_values, constraint_values, model)
 
     objective_values_offspring[i] = obj
     constraint_values_offspring[i] = con
@@ -186,12 +188,16 @@ function generateAndEvaluateNewSolutionsToFillOffspring!(population::Array{Bool}
 end
 
 # modifies a solution in place thru GOM and returns its objective value
-function generateNewSolution!(population::Array{Bool}, which::Int64, result::Array{Bool}, objective_values::Array{Float64}, constraint_values::Array{Float64}, model::Array{Array{Int64}} )::Tuple{Float64, Float64}
-  population_size, number_of_parameters = size(population)
-  model_length = length(model)
+function generateNewSolution!(
+    population::Array{Bool}, which::Int64,
+    population_size::Int64, number_of_parameters::Int64, model_length::Int64,
+    result::Array{Bool},
+    objective_values::Array{Float64},
+    constraint_values::Array{Float64},
+    model::Array{Array{Int64}} )::Tuple{Float64, Float64}
+
   solution_has_changed = false
   is_unchanged = true
-  # backup = Array{Bool}(number_of_parameters)
 
   result .= population[ which , 1:number_of_parameters]
   obj = objective_values[ which ]
