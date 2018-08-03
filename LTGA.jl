@@ -286,6 +286,40 @@ function generateNewSolution!(population::Array{Bool}, which::Int64, result::Arr
   return obj, con
 end
 
+function updateBestPrevGenSolution(population::Array{Bool}, objective_values::Array{Float64}, constraint_values::Array{Float64})::Void
+    replace_best_prevgen = false
+
+    individual_index_best = determineBestSolutionInCurrentPopulation(objective_values, constraint_values)
+
+    if (number_of_generations == 0)
+        replace_best_prevgen = true
+    elseif betterFitness( objective_values[individual_index_best], constraint_values[individual_index_best]
+                        , best_prevgen_objective_value, best_prevgen_constraint_value)
+        replace_best_prevgen = true
+    end
+    if replace_best_prevgen == true
+        global best_prevgen_solution .= population[individual_index_best, 1:number_of_parameters]
+        global best_prevgen_objective_value = objective_values[individual_index_best]
+        global best_prevgen_constraint_value = constraint_values[individual_index_best]
+        global no_improvement_stretch = 0
+    else
+        global no_improvement_stretch += 1
+    end
+    return
+end
+
+function determineBestSolutionInCurrentPopulation(objective_values::Array{Float64}, constraint_values::Array{Float64})
+    population_size = length(objective_values)
+    index_of_best = 1
+    for i = 1:population_size
+        if betterFitness( objective_values[i], constraint_values[i],
+                        objective_values[index_of_best], constraint_values[index_of_best] )
+            index_of_best = i
+        end
+    end
+    return index_of_best
+end
+
 function betterFitness(objective_value_x::Float64, constraint_value_x::Float64, objective_value_y::Float64, constraint_value_y::Float64 )::Bool
   result = false
   if (constraint_value_x > 0)
@@ -316,6 +350,14 @@ function equalFitness(objective_value_x::Float64, constraint_value_x::Float64, o
 end
 
 function runGA()
+    # initializeFitnessValues
+    # updateBestPrevGenSolution
+    #
+    # while termination
+    #     makeOffspring
+    #     selectFinalSurvivors
+    #     updateBestPrevGenSolution
+    # end
 end
 
 function main(  problem_index,
