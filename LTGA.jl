@@ -8,24 +8,31 @@ function setGlobals(index::Int64, nParams::Int64, popSize::Int64)::Void
     "number of parameters:  ", nParams, "\n",
     "population size:       ", popSize)
 
-    global problem_index = index
-    global population_size = popSize
-    global number_of_parameters = nParams
+    global const problem_index                   = index
+    global const population_size                 = popSize
+    global const offspring_size                  = popSize
+    global const number_of_parameters            = nParams
+    global const model_length                    = length(generateModelForProblemIndex(index, nParams))
+    global const limit_no_improvement            = (1 + log(population_size) / log(10))
 
-    global constraint_values_offspring     = Array{Float64}(population_size)
-    global best_prevgen_solution           = Array{Bool}(number_of_parameters)
+    global best_prevgen_solution                 = Array{Bool}(number_of_parameters)
+
+    __init__()
     return
 end
 
 is_inited                       = false
 
-problem_index                   = 0
-number_of_parameters            = 0
-population_size                 = 0
-
-number_of_evaluations           = 0
-number_of_generations           = 0
-no_improvement_stretch          = 0
+# problem_index                   = 0
+# number_of_parameters            = 0
+# population_size                 = 0
+function __init__()
+    global number_of_evaluations           = 0
+    global number_of_generations           = 0
+    global no_improvement_stretch          = 0
+    global best_prevgen_objective_value    = 0.0
+    global best_prevgen_constraint_value   = 0.0
+end
 # selection_size                = population_size
 # offspring_size                = population_size
 #
@@ -35,9 +42,8 @@ no_improvement_stretch          = 0
 # selection                     = BitArray(population_size, number_of_parameters)
 # offspring                     = BitArray(offspring_size, number_of_parameters)
 # objective_values_offspring    = Array{Float64}(population_size)
-best_prevgen_solution           = []
-best_prevgen_objective_value    = 0.0
-best_prevgen_constraint_value   = 0.0
+# best_prevgen_solution           = []
+
 # best_ever_evaluated_solution  = BitArray(number_of_parameters)
 
 
@@ -47,7 +53,7 @@ function initializeFitnessValues( population::Array{Bool}, objective_values::Arr
   population_size, number_of_parameters = size(population)
 
   for i = 1:population_size
-    obj, con = installedProblemEvaluation( problem_index, population[ i , 1:number_of_parameters ] )
+    obj, con = installedProblemEvaluation( problem_index, population[ i , : ] )
     objective_values[i]   = obj
     constraint_values[i]  = con
   end
@@ -170,19 +176,19 @@ end
 ############# Section Crossover
 
 function generateAndEvaluateNewSolutionsToFillOffspring!(population::Array{Bool}, offspring::Array{Bool},  objective_values::Array{Float64}, constraint_values::Array{Float64}, objective_values_offspring::Array{Float64}, constraint_values_offspring::Array{Float64} , model)::Void
-  population_size, number_of_parameters = size(population)
-  offspring_size, dummy  = size(offspring)
-  model_length = length(model)
+  # population_size, number_of_parameters = size(population)
+  # offspring_size, dummy  = size(offspring)
+  # model_length = length(model)
 
+  backup = Array{Bool}(number_of_parameters)
   solution = Array{Bool}(number_of_parameters)
-
   for i = 1:offspring_size
-    obj, con = generateNewSolution!(population, i, population_size, number_of_parameters, model_length, solution, objective_values, constraint_values, model)
+    obj, con = generateNewSolution!(population, i, population_size, number_of_parameters, model_length, solution, backup, objective_values, constraint_values, model)
 
     objective_values_offspring[i] = obj
     constraint_values_offspring[i] = con
 
-    offspring[i,1:number_of_parameters] .= solution
+    offspring[i,:] .= solution
   end
   return
 end
@@ -192,6 +198,7 @@ function generateNewSolution!(
     population::Array{Bool}, which::Int64,
     population_size::Int64, number_of_parameters::Int64, model_length::Int64,
     result::Array{Bool},
+    backup::Array{Bool},
     objective_values::Array{Float64},
     constraint_values::Array{Float64},
     model::Array{Array{Int64}} )::Tuple{Float64, Float64}
@@ -199,11 +206,12 @@ function generateNewSolution!(
   solution_has_changed = false
   is_unchanged = true
 
-  result .= population[ which , 1:number_of_parameters]
+  result .= population[ which , :]
   obj = objective_values[ which ]
   con = constraint_values[ which ]
 
-  backup = copy(result)
+  # backup = copy(result)
+  backup .= result
   obj_backup = obj
   con_backup = con
 
@@ -216,7 +224,7 @@ function generateNewSolution!(
     end
     number_of_indices = length(model[i])
 
-    result[model[i][1:number_of_indices]] .= population[ donor_index , model[i][1:number_of_indices] ]
+    result[model[i][:]] .= population[ donor_index , model[i][:] ]
 
     is_unchanged = true
     for j = 1:number_of_indices
@@ -231,7 +239,7 @@ function generateNewSolution!(
       obj, con = installedProblemEvaluation( problem_index, result)
       if betterFitness( obj, con, obj_backup, con_backup) || equalFitness( obj, con, obj_backup, con_backup)
 
-        backup[ model[ i ][ 1:number_of_indices ] ] .= result[ model[ i ][ 1:number_of_indices ] ]
+        backup[ model[ i ][ : ] ] .= result[ model[ i ][ : ] ]
 
         obj_backup = obj
         con_backup = con
@@ -239,7 +247,7 @@ function generateNewSolution!(
         solution_has_changed = true
       else
 
-        result[ model[ i ][ 1:number_of_indices ] ] .= backup[ model[ i ][ 1:number_of_indices ] ]
+        result[ model[ i ][ : ] ] .= backup[ model[ i ][ : ] ]
 
         obj = obj_backup
         con = con_backup
@@ -247,12 +255,12 @@ function generateNewSolution!(
     end
   end
   # TODO: FORCED IMPROVEMENTS PART
-  if (!solution_has_changed || (no_improvement_stretch > (1 + log(population_size) / log(10))))
+  if (!solution_has_changed || (no_improvement_stretch > limit_no_improvement))
     solution_has_changed = false
     for i = model_length-1 : -1 : 1
       number_of_indices = length(model[ i ])
 
-      result[ model[ i ][ 1:number_of_indices ] ] .= best_prevgen_solution[ model[ i ][ 1:number_of_indices ] ]
+      result[ model[ i ][ : ] ] .= best_prevgen_solution[ model[ i ][ : ] ]
 
       is_unchanged = true
       for j = 1:number_of_indices
@@ -266,7 +274,7 @@ function generateNewSolution!(
         obj, con = installedProblemEvaluation( problem_index, result)
         if betterFitness( obj, con, obj_backup, con_backup)
 
-          backup[ model[ i ][ 1:number_of_indices ] ] .= result[ model[ i ][ 1:number_of_indices ] ]
+          backup[ model[ i ][ : ] ] .= result[ model[ i ][ : ] ]
 
           obj_backup = obj
           con_backup = con
@@ -274,7 +282,7 @@ function generateNewSolution!(
           solution_has_changed = true
         end
       else
-        result[ model[ i ][ 1:number_of_indices ] ] .= backup[ model[ i ][ 1:number_of_indices ] ]
+        result[ model[ i ][ : ] ] .= backup[ model[ i ][ : ] ]
 
         obj = obj_backup
         con = con_backup
@@ -314,7 +322,7 @@ function updateBestPrevGenSolution(population::Array{Bool}, objective_values::Ar
         replace_best_prevgen = true
     end
     if replace_best_prevgen == true
-        global best_prevgen_solution .= population[individual_index_best, 1:number_of_parameters]
+        global best_prevgen_solution .= population[individual_index_best, :]
         global best_prevgen_objective_value = objective_values[individual_index_best]
         global best_prevgen_constraint_value = constraint_values[individual_index_best]
         global no_improvement_stretch = 0
