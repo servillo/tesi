@@ -12,7 +12,7 @@ function setGlobals(index::Int64, nParams::Int64, popSize::Int64)::Void
     global const population_size                 = popSize
     global const offspring_size                  = popSize
     global const number_of_parameters            = nParams
-    global const model_length                    = length(generateModelForProblemIndex(index, nParams))
+    global const model_length                    = length(generateMPModelForProblemIndex(index, nParams))
     global const limit_no_improvement            = (1 + log(population_size) / log(10))
 
     global best_prevgen_solution                 = Array{Bool}(number_of_parameters)
@@ -63,16 +63,16 @@ end
 
 ######## Section Model
 
-function generateModelForProblemIndex(index::Int64, nparams::Int64)::Array{Array{Int64}}
+function generateMPModelForProblemIndex(index::Int64, nparams::Int64)::Array{Array{Int64}}
     if index == 0
-        return modelForOneMax(nparams)
+        return MPmodelForOneMax(nparams)
     elseif index == 1
-        return modelForDeceptive4Tight(nparams)
+        return MPmodelForDeceptive4Tight(nparams)
     # elseif index == 2
     end
 end
 
-function modelForOneMax(nparams::Int64)::Array{Array{Int64}}
+function MPmodelForOneMax(nparams::Int64)::Array{Array{Int64}}
     # model has 1 additional element at last position for compatibility with LT model
     model = Array{Array{Int64}}(nparams + 1)
     for i = 1:nparams
@@ -81,7 +81,7 @@ function modelForOneMax(nparams::Int64)::Array{Array{Int64}}
     return model
 end
 
-function modelForDeceptive4Tight(nparams::Int64)::Array{Array{Int64}}
+function MPmodelForDeceptive4Tight(nparams::Int64)::Array{Array{Int64}}
     number_of_blocks = Int(nparams / 4)
     # model has 1 additional element at last position for compatibility with LT model
     model = Array{Array{Int64}}(number_of_blocks + 1)
@@ -90,7 +90,25 @@ function modelForDeceptive4Tight(nparams::Int64)::Array{Array{Int64}}
     end
     return model
 end
+
+function LTmodeForDeceptive4Tight(nparams::Int64)::Array{Array{Int64}}
+    nodes = Int(nparams + nparams/2 + nparams/4 + 1)
+    model = Array{Array{Int64}}(nodes)
+    for i = 1:nparams
+        model[i] = [i]
+    end
+    for i = 1:Int(nparams / 2)
+        model[i + nparams] = [j for j = (i*2) - 1:i*2]
+    end
+    for i = 1:Int(nparams / 4)
+        model[i + Int(nparams + nparams/2)] = [j for j = 4(i-1) + 1: 4(i-1) + 4]
+    end
+    model[nodes] = [0]
+    return model
+end
+
 ##############################
+
 
 ######### Section Evaluation
 function installedProblemEvaluation( index::Int64, parameters::Array{Bool} )::Tuple{Float64, Float64}
