@@ -13,27 +13,26 @@ function setGlobals(index::Int64, nParams::Int64, popSize::Int64, modelType::Str
     "number of parameters:  ", nParams, "\n",
     "population size:       ", popSize)
 
-    global const problem_index                   = index
-    global const population_size                 = popSize
-    global const offspring_size                  = popSize
-    global const number_of_parameters            = nParams
+    global const problem_index             = index
+    global const population_size           = popSize
+    global const offspring_size            = popSize
+    global const number_of_parameters      = nParams
     # global const model_length                    = length(generateModelForTypeAndProblemIndex(modelType, index, nParams))
-    global const limit_no_improvement            = (1 + log(population_size) / log(10))
+    global const limit_no_improvement      = (1 + log(population_size) / log(10))
 
-    global const best_prevgen_solution                 = Array{Bool}(number_of_parameters)
-    global is_inited                                    = true
-    __init__()
-    return
-end
-
-
-function __init__()
+    global const best_prevgen_solution     = Array{Bool}(number_of_parameters)
+    global is_inited                       = true
     global number_of_evaluations           = 0
     global number_of_generations           = 0
     global no_improvement_stretch          = 0
     global best_prevgen_objective_value    = 0.0
     global best_prevgen_constraint_value   = 0.0
+    return
 end
+
+
+
+
 
 ######## Section Initialize
 
@@ -408,7 +407,27 @@ function equalFitness(objective_value_x::Float64, constraint_value_x::Float64, o
   end
   return result
 end
+########### Section Termination
 
+function checkTerminationCondition(max, vtr, tol, objective_values)::Bool
+    if number_of_evaluations >= max
+        println("max eval")
+        return true
+    end
+    if vtr > zero(vtr)
+        if best_prevgen_objective_value >= vtr
+            println("vtr hit")
+            return true
+        end
+    end
+    if var(objective_values, corrected = false) <= tol
+        println("no variance")
+        return true
+    end
+    return false
+end
+
+########### Section Main
 function runGA()
     # initializeFitnessValues
     # updateBestPrevGenSolution
@@ -431,11 +450,10 @@ function main(  problem_index,
                 fitness_variance_tolerance
                 )
   ############## Options Section
-               write_generational_statistics = true
-               write_generational_solutions  = true
-               print_verbose_overview        = true
-               print_lt_contents             = true
-               use_vtr                       = true
+            const write_generational_statistics = true
+            const write_generational_solutions  = true
+            const print_verbose_overview        = true
+            const print_lt_contents             = true
    ############# Run
             const population = randomPopulation(population_size, number_of_parameters)
             const offspring = Array{Bool}(population_size, number_of_parameters)
@@ -457,9 +475,9 @@ function main(  problem_index,
 
             # update best found so far
             updateBestPrevGenSolution(population, objective_values, constraint_values)
-            i = 0
-            while i < 100000
-                i += 1
+
+            while !checkTerminationCondition(maximum_number_of_evaluations, vtr, fitness_variance_tolerance, objective_values)
+
                 generateAndEvaluateNewSolutionsToFillOffspring!( population,
                                                                 offspring,
                                                                 objective_values,
@@ -469,14 +487,14 @@ function main(  problem_index,
                                                                 model,
                                                                 model_length)
 
-                # selectFinalSurvivors( population,
-                #                       offspring,
-                #                       objective_values,
-                #                       constraint_values,
-                #                       objective_values_offspring,
-                #                       constraint_values_offspring)
-                #
-                # updateBestPrevGenSolution( population, objective_values, constraint_values)
+                selectFinalSurvivors!( population,
+                                      offspring,
+                                      objective_values,
+                                      constraint_values,
+                                      objective_values_offspring,
+                                      constraint_values_offspring)
+
+                updateBestPrevGenSolution( population, objective_values, constraint_values)
             end
 
         # runGA()
