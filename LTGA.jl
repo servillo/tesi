@@ -1,9 +1,14 @@
 module LTGA
 ############## Globals Section
 
+is_inited                       = false
 
 function setGlobals(index::Int64, nParams::Int64, popSize::Int64, modelType::String)::Void
+    if is_inited
+        println("Overriding parameters...")
+    end
     println("LTGA initialized with parameters:\n",
+    "model type:            ", modelType, "\n",
     "problem_index:         ", index, "\n",
     "number of parameters:  ", nParams, "\n",
     "population size:       ", popSize)
@@ -12,20 +17,16 @@ function setGlobals(index::Int64, nParams::Int64, popSize::Int64, modelType::Str
     global const population_size                 = popSize
     global const offspring_size                  = popSize
     global const number_of_parameters            = nParams
-    global const model_length                    = length(generateModelForTypeAndProblemIndex(modelType, index,nParams))
-    # global const limit_no_improvement            = (1 + log(population_size) / log(10))
+    global const model_length                    = length(generateModelForTypeAndProblemIndex(modelType, index, nParams))
+    global const limit_no_improvement            = (1 + log(population_size) / log(10))
 
-    global best_prevgen_solution                 = Array{Bool}(number_of_parameters)
-
+    global const best_prevgen_solution                 = Array{Bool}(number_of_parameters)
+    global is_inited                                    = true
     __init__()
     return
 end
 
-is_inited                       = false
 
-# problem_index                   = 0
-# number_of_parameters            = 0
-# population_size                 = 0
 function __init__()
     global number_of_evaluations           = 0
     global number_of_generations           = 0
@@ -33,20 +34,6 @@ function __init__()
     global best_prevgen_objective_value    = 0.0
     global best_prevgen_constraint_value   = 0.0
 end
-# selection_size                = population_size
-# offspring_size                = population_size
-#
-# population                    = BitArray(population_size, number_of_parameters)
-# objective_values              = Array{Float64}(population_size)
-# constraint_values             = Array{Float64}(population_size)
-# selection                     = BitArray(population_size, number_of_parameters)
-# offspring                     = BitArray(offspring_size, number_of_parameters)
-# objective_values_offspring    = Array{Float64}(population_size)
-# best_prevgen_solution           = []
-
-# best_ever_evaluated_solution  = BitArray(number_of_parameters)
-
-
 
 ######## Section Initialize
 function initializeFitnessValues( population::Array{Bool}, objective_values::Array{Float64}, constraint_values::Array{Float64} )::Void
@@ -281,8 +268,8 @@ function generateNewSolution!(
       end
     end
   end
-  # TODO: FORCED IMPROVEMENTS PART
-  if (!solution_has_changed || (no_improvement_stretch > (1 + log(population_size) / log(10))))
+  # FORCED IMPROVEMENTS PART
+  if (!solution_has_changed || (no_improvement_stretch > limit_no_improvement))
     solution_has_changed = false
     for i = model_length-1 : -1 : 1
       number_of_indices = length(model[ i ])
