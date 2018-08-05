@@ -36,6 +36,17 @@ function __init__()
 end
 
 ######## Section Initialize
+
+function randomPopulation(popSize, nParams)
+    population = Array{Bool}(popSize, nParams)
+    for i = 1:popSize
+        for j = 1:nParams
+            population[ i , j ] = rand(Bool)
+        end
+    end
+    return population
+end
+
 function initializeFitnessValues( population::Array{Bool}, objective_values::Array{Float64}, constraint_values::Array{Float64} )::Void
   population_size, number_of_parameters = size(population)
 
@@ -189,17 +200,18 @@ end
 
 ############# Section Crossover
 
-function generateAndEvaluateNewSolutionsToFillOffspring!(population::Array{Bool},
-                                                         offspring::Array{Bool},
-                                                         objective_values::Array{Float64},
-                                                         constraint_values::Array{Float64},
-                                                         objective_values_offspring::Array{Float64},
-                                                         constraint_values_offspring::Array{Float64} ,
-                                                         model::Array{Array{Int64}},
-                                                         model_length::Int64)::Void
+function generateAndEvaluateNewSolutionsToFillOffspring!(
+    population::Array{Bool},
+    offspring::Array{Bool},
+    objective_values::Array{Float64},
+    constraint_values::Array{Float64},
+    objective_values_offspring::Array{Float64},
+    constraint_values_offspring::Array{Float64},
+    model::Array{Array{Int64}},
+    model_length::Int64)::Void
 
-  backup = Array{Bool}(number_of_parameters)
-  solution = Array{Bool}(number_of_parameters)
+  const backup = Array{Bool}(number_of_parameters)
+  const solution = Array{Bool}(number_of_parameters)
   for i = 1:offspring_size
     obj, con = generateNewSolution!(population, i, population_size,
                                     number_of_parameters,
@@ -356,6 +368,7 @@ function updateBestPrevGenSolution(population::Array{Bool}, objective_values::Ar
 end
 
 function determineBestSolutionInCurrentPopulation(objective_values::Array{Float64}, constraint_values::Array{Float64})
+    # TODO GIVE AS INPUT
     population_size = length(objective_values)
     index_of_best = 1
     for i = 1:population_size
@@ -412,10 +425,11 @@ end
 function main(  problem_index,
                 number_of_parameters,
                 population_size,
+                modelType,
                 maximum_number_of_evaluations,
                 vtr,
-                fitness_variance_tolerance,
-                modelType )
+                fitness_variance_tolerance
+                )
   ############## Options Section
                write_generational_statistics = true
                write_generational_solutions  = true
@@ -423,12 +437,12 @@ function main(  problem_index,
                print_lt_contents             = true
                use_vtr                       = true
    ############# Run
-            population = randomPopulation(population_size, number_of_parameters)
-            offspring = Array{Bool}(population_size, number_of_parameters)
-            objective_values = Array{Float64}(population_size)
-            constraint_values = Array{Float64}(population_size)
-            objective_values_offspring = Array{Float64}(population_size)
-            constraint_values_offspring = Array{Float64}(population_size)
+            const population = randomPopulation(population_size, number_of_parameters)
+            const offspring = Array{Bool}(population_size, number_of_parameters)
+            const objective_values = Array{Float64}(population_size)
+            const constraint_values = Array{Float64}(population_size)
+            const objective_values_offspring = Array{Float64}(population_size)
+            const constraint_values_offspring = Array{Float64}(population_size)
 
             # set LTGA globals
             setGlobals(problem_index, number_of_parameters, population_size, modelType)
@@ -443,10 +457,10 @@ function main(  problem_index,
 
             # update best found so far
             updateBestPrevGenSolution(population, objective_values, constraint_values)
-
-            while checkTerminationCondition()
-
-                generateAndEvaluateNewSolutionsToFillOffspring( population,
+            i = 0
+            while i < 100000
+                i += 1
+                generateAndEvaluateNewSolutionsToFillOffspring!( population,
                                                                 offspring,
                                                                 objective_values,
                                                                 constraint_values,
@@ -455,14 +469,14 @@ function main(  problem_index,
                                                                 model,
                                                                 model_length)
 
-                selectFinalSurvivors( population,
-                                      offspring,
-                                      objective_values,
-                                      constraint_values,
-                                      objective_values_offspring,
-                                      constraint_values_offspring)
-
-                updateBestPrevGenSolution( population, objective_values, constraint_values)
+                # selectFinalSurvivors( population,
+                #                       offspring,
+                #                       objective_values,
+                #                       constraint_values,
+                #                       objective_values_offspring,
+                #                       constraint_values_offspring)
+                #
+                # updateBestPrevGenSolution( population, objective_values, constraint_values)
             end
 
         # runGA()
