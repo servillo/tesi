@@ -2,7 +2,7 @@ module LTGA
 ############## Globals Section
 
 
-function setGlobals(index::Int64, nParams::Int64, popSize::Int64)::Void
+function setGlobals(index::Int64, nParams::Int64, popSize::Int64, modelType::String)::Void
     println("LTGA initialized with parameters:\n",
     "problem_index:         ", index, "\n",
     "number of parameters:  ", nParams, "\n",
@@ -12,7 +12,7 @@ function setGlobals(index::Int64, nParams::Int64, popSize::Int64)::Void
     global const population_size                 = popSize
     global const offspring_size                  = popSize
     global const number_of_parameters            = nParams
-    global const model_length                    = length(generateMPModelForProblemIndex(index, nParams))
+    global const model_length                    = length(generateModelForTypeAndProblemIndex(modelType, index,nParams))
     # global const limit_no_improvement            = (1 + log(population_size) / log(10))
 
     global best_prevgen_solution                 = Array{Bool}(number_of_parameters)
@@ -63,12 +63,21 @@ end
 
 ######## Section Model
 
-function generateMPModelForProblemIndex(index::Int64, nparams::Int64)::Array{Array{Int64}}
+function generateModelForTypeAndProblemIndex(modelType::String, index::Int64, nParams::Int64)::Array{Array{Int64}}
     if index == 0
-        return MPmodelForOneMax(nparams)
-    elseif index == 1
-        return MPmodelForDeceptive4Tight(nparams)
-    # elseif index == 2
+        return MPmodelForOneMax(nParams)
+    else
+        if modelType == "lt"
+            if index == 1
+                return LTmodeForDeceptive4Tight(nParams)
+            # else if index == 2
+            end
+        elseif modelType == "mp"
+            if index == 1
+                return MPmodelForDeceptive4Tight(nParams)
+            # elseif index == 2
+            end
+        end
     end
 end
 
