@@ -5,7 +5,7 @@ is_inited                       = false
 
 function setGlobals(index::Int64, nParams::Int64, popSize::Int64, modelType::String)::Void
     if is_inited
-        println("Overriding parameters...")
+        return error("LTGA was already initialized")
     end
     println("LTGA initialized with parameters:\n",
     "model type:            ", modelType, "\n",
