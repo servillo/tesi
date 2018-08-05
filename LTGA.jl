@@ -13,7 +13,7 @@ function setGlobals(index::Int64, nParams::Int64, popSize::Int64)::Void
     global const offspring_size                  = popSize
     global const number_of_parameters            = nParams
     global const model_length                    = length(generateMPModelForProblemIndex(index, nParams))
-    global const limit_no_improvement            = (1 + log(population_size) / log(10))
+    # global const limit_no_improvement            = (1 + log(population_size) / log(10))
 
     global best_prevgen_solution                 = Array{Bool}(number_of_parameters)
 
@@ -273,7 +273,7 @@ function generateNewSolution!(
     end
   end
   # TODO: FORCED IMPROVEMENTS PART
-  if (!solution_has_changed || (no_improvement_stretch > limit_no_improvement))
+  if (!solution_has_changed || (no_improvement_stretch > (1 + log(population_size) / log(10))))
     solution_has_changed = false
     for i = model_length-1 : -1 : 1
       number_of_indices = length(model[ i ])

@@ -33,15 +33,11 @@ end
 
 pop, off, obj, con, obj_off, con_off, model = initializeProblemInstance(1, 20, 10)
 
+
+LTGA.updateBestPrevGenSolution(pop, obj, con)
+
 LTGA.generateAndEvaluateNewSolutionsToFillOffspring!(pop, off, obj, con, obj_off, con_off, model)
+LTGA.selectFinalSurvivors!( pop, off, obj, con, obj_off, con_off)
 
 
-
-
-for i = 1:100000
-    LTGA.generateAndEvaluateNewSolutionsToFillOffspring!(initializedPopulation, offspring, obj, con, obj_off, con_off, model)
-    if !((obj_off .== 0) == falses(10))
-        print("iteration", i)
-        break
-    end
 end
