@@ -1,70 +1,142 @@
-function extractAllOptima(dim::Int64, k::Int64 )
-  parts = Int(dim / k)
-  localOptima = BitMatrix(2^parts, dim)
-  notChecked = trues((2^dim))
+using Gallium
 
-  counter = 0
-  for i = 0 : (2^dim)-1
-    solution = bin(i,16)
-    if (notChecked[indexOf(solution)])
-      notChecked[indexOf(solution)] = false
-      optimum = localSearch(solution)
+mutable struct Block
+  indexes::Array{Int64}
+  fitness::Float64
+  # Block() = Block([],0.0)
+end
 
+function bestImprovementLocalSearch!( parameters::Array{Bool}, problem_index::Int64)
+
+  const blocks = initializeBlocks(parameters, problem_index)
+
+  LocalSearch!( parameters, blocks, problem_index)
+  return parameters
+end
+
+function LocalSearch!( parameters::Array{Bool}, blocks::Array{Block}, problem_index::Int64)
+  best_improvement = 0.0
+  best_index       = 0
+  block_nr         = 0
+  for i = 1:length(blocks)
+    for var in blocks[i].indexes
+      parameters[var] = !parameters[var]
+      fitness = evaluateBlock(parameters, blocks[i].indexes, problem_index)
+      if fitness > blocks[i].fitness && fitness > best_improvement
+        best_improvement = fitness
+        best_index = var
+        block_nr = i
+      end
+      parameters[var] = !parameters[var]
     end
+  end
+  if best_index != 0
+    parameters[best_index] = !parameters[best_index]
+    blocks[block_nr].fitness = best_improvement
+    LocalSearch!( parameters, blocks, problem_index)
+  end
+  return nothing
+end
+
+function initializeBlocks( parameters,  problem_index )::Array{Block}
+  if problem_index == 0
+    const blocks = Array{Block}(1)
+    blocks[1] = Block([i for i = 1:length(parameters)], sum(Float64, parameters))
+    return blocks
+  end
+  k = problem_index % 2 == 0 ? 5 : 4
+  number_of_blocks = Int(length(parameters) / k)
+  const blocks = Array{Any}(number_of_blocks)
+
+  for i = 1:number_of_blocks
+    indexes = getIndexesForDeceptiveProblem(problem_index, length(parameters), k, i)
+    blocks[i] = Block(indexes, evaluateBlock(parameters, indexes, problem_index))
+  end
+  return blocks
+end
+
+function evaluateBlock(parameters, indexes, problem_index)::Float64
+  if problem_index == 0
+    return sum(parameters)
+  else
+    k = problem_index % 2 == 0 ? 5 : 4
+    ones = sum(parameters[indexes])
+    penalty = ones == k ? 0 : ones + 1
+    return 1.0 - penalty / k
   end
 end
 
-function indexOf(strSolution::String)
-  return parse(Int,strSolution,2)+1 # 0 sits at position 1 in julia
+function getIndexesForDeceptiveProblem( problem_index, problem_size, k, i)
+  if problem_index == 1 || problem_index == 2
+    return [(i-1)*k + j for j = 1:k  ]
+  elseif problem_index == 3 || problem_index == 4
+    step = Int(problem_size / k)
+    return [i + j*step for j = 0:k-1]
+  end
 end
 
-function localSearch(solution::String,  )
-
+function base10(strSolution::String)
+  return parse(Int,strSolution,2)
 end
 
-x= BitArray(10)
-@time extractAllOptima(36,4)
-trues(2^36)
-
-m = BitMatrix(10,10)
-
-size(m)
-
-
-
-function main()
-  population = 10
-  dimensionality = 16
-  deceptiveTrap_K = 4
-
-  instance = generateArrayInstance(population , dimensionality)
-
-  localOptima = extractAllOptima(dimensionality, deceptiveTrap_K)
-
-  return localOptima
+function getAllOptimaIndexes( problem_size::Int64, problem_index::Int64 )::Array{Int128}
+  if problem_index == 0
+    return (2^problem_size - 1) < 0  ? error("problem too big") : [(2^problem_size-1)]
+  elseif problem_index < 5
+    k = problem_index % 2 == 0 ? 5 : 4
+    number_of_optima = 2^(Int(problem_size / k))
+    return allCodedOptima(number_of_optima)
+  elseif problem_index >= 5
+    return error("not implemented yet for problem ", problem_index)
+  end
 end
 
-function deceptiveTrapKTightEncodingFunctionProblemEvaluation( parameters::Array{ Integer } , k::Int64)::Float64
-    dim = length(parameters)
-    if dim % k != 0
-      return error("Error in fitness evaluation: number of parameters not a multiple of k")
+
+function codeOptimum( optimum, problem_index )
+  blocks = initializeBlocks( optimum, problem_index)
+  stringCodification = ""
+  for i = 1:length(blocks)
+    if blocks[i].fitness < 1.0
+      stringCodification *= "0"
+    else
+      stringCodification *= "1"
     end
-    m = Int(dim / k)
-    result = 0.0
-    for i = 0:m-1
-      ones = 0
-      for j = 1:k
-        ones += (parameters[i*k + j] == true) ? 1 : 0
-      end
-        if (ones == k)
-          result += 1.0
-          else
-          result += (k-1-ones) / k
-        end
-      end
-    return result / m
+  end
+  return base10(stringCodification)
 end
 
-function generateRandomInstance(population::Int64, dimensionality::Int64)::Array{Bool}
-    randomInstance = rand(Bool, population, dimensionality)
+
+function decodeOptimum( base_10_optimum, problem_size, problem_index)
+  k = problem_index % 2 == 0 ? 5 : 4
+  stringCodification = bin(base_10_optimum, Int(problem_size / k))
+  solution = Array{Bool}(problem_size)
+  for block_nr = 1:length(stringCodification)
+    if stringCodification[block_nr] == '1'
+      solution[getIndexesForDeceptiveProblem(problem_index,problem_size, k, block_nr)] .= true
+    else
+      solution[getIndexesForDeceptiveProblem(problem_index,problem_size, k, block_nr)] .= false
+    end
+  end
+  return solution
+end
+
+function allCodedOptima( number_of_optima)
+  return [i for i = 0:number_of_optima-1]
+end
+
+
+
+
+population = rand(Bool, 10,20)
+popsize, dim = size(population)
+problem_index = 4
+ for i = 1:popsize
+   bestImprovementLocalSearch!(population[1,:], problem_index)
+end
+
+codedOptimas = getAllOptimaIndexes(dim,problem_index)
+decodedOptimas = []
+
+for i = 1:length(codedOptimas)
+ push!(decodedOptimas, decodeOptimum(codedOptimas[i], dim, problem_index))
 end

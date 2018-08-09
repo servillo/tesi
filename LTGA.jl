@@ -473,7 +473,7 @@ function main(  problem_index,
 
             const model_length = length(model)
 
-            # update best found so far
+            # update best initial solution
             updateBestPrevGenSolution(population, objective_values, constraint_values)
 
             while !checkTerminationCondition(maximum_number_of_evaluations, vtr, fitness_variance_tolerance, objective_values)
@@ -486,6 +486,13 @@ function main(  problem_index,
                                                                 constraint_values_offspring,
                                                                 model,
                                                                 model_length)
+
+
+                # update best solution in generation
+                # updateBestGenSolution(population, objective_values, constraint_values)
+
+                # place edges
+                # LONutilites.placeEdge( LON, best_gen_solution)
 
                 selectFinalSurvivors!( population,
                                       offspring,
