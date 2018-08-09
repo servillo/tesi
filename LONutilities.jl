@@ -79,13 +79,13 @@ function base10(strSolution::String)
   return parse(Int,strSolution,2)
 end
 
-function getAllOptimaIndexes( problem_size::Int64, problem_index::Int64 )::Array{Int128}
+function getAllOptimaIndexes( problem_size::Int64, problem_index::Int64 )::UnitRange{Int64}
   if problem_index == 0
     return (2^problem_size - 1) < 0  ? error("problem too big") : [(2^problem_size-1)]
   elseif problem_index < 5
     k = problem_index % 2 == 0 ? 5 : 4
     number_of_optima = 2^(Int(problem_size / k))
-    return allCodedOptima(number_of_optima)
+    return 0:number_of_optima-1
   elseif problem_index >= 5
     return error("not implemented yet for problem ", problem_index)
   end
@@ -120,23 +120,46 @@ function decodeOptimum( base_10_optimum, problem_size, problem_index)
   return solution
 end
 
+function decodeOptimum2( base_10_optimum::Int64, problem_size::Int64, problem_index::Int64, indexes)
+  k = problem_index % 2 == 0 ? 5 : 4
+  stringCodification = bin(base_10_optimum, Int(problem_size / k))
+  solution = Array{Bool}(problem_size)
+  for block_nr = 1:length(stringCodification)
+    if stringCodification[block_nr] == '1'
+      solution[indexes[block_nr]] .= true
+    else
+      solution[indexes[block_nr]] .= false
+    end
+  end
+  return solution
+end
+
 function allCodedOptima( number_of_optima)
   return [i for i = 0:number_of_optima-1]
 end
 
 
 
+#
+# population = rand(Bool, 10,20)
+# popsize, dim = size(population)
+# problem_index = 4
+#  for i = 1:popsize
+#    bestImprovementLocalSearch!(population[1,:], problem_index)
+# end
 
-population = rand(Bool, 10,20)
-popsize, dim = size(population)
 problem_index = 4
- for i = 1:popsize
-   bestImprovementLocalSearch!(population[1,:], problem_index)
-end
+dim = 15
+k = problem_index % 2 == 0 ? 5 : 4
+codedOptimas = getAllOptimaIndexes(dim, problem_index)
 
-codedOptimas = getAllOptimaIndexes(dim,problem_index)
-decodedOptimas = []
 
-for i = 1:length(codedOptimas)
- push!(decodedOptimas, decodeOptimum(codedOptimas[i], dim, problem_index))
+function f()
+  indexes = Array{Array{Int64}}(Int(dim / k))
+  for i = 1:length(indexes)
+    indexes[i] = getIndexesForDeceptiveProblem(problem_index, dim, k, i)
+  end
+  for i = 1:length(codedOptimas)
+   push!(decodedOptimas, decodeOptimum2(codedOptimas[i], dim,problem_index, indexes))
+  end
 end

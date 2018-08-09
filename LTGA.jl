@@ -3,6 +3,10 @@ module LTGA
 
 is_inited                       = false
 
+"""
+(index::Int64, nParams::Int64, popSize::Int64, modelType::String)::Void
+To call only once when setting up the problem
+"""
 function setGlobals(index::Int64, nParams::Int64, popSize::Int64, modelType::String)::Void
     if is_inited
         return error("LTGA was already initialized")
@@ -35,8 +39,10 @@ end
 
 
 ######## Section Initialize
-
-function randomPopulation(popSize, nParams)
+"""
+(popSize::Int64, nParams::Int64)
+"""
+function randomPopulation(popSize::Int64, nParams::Int64)
     population = Array{Bool}(popSize, nParams)
     for i = 1:popSize
         for j = 1:nParams
@@ -45,7 +51,10 @@ function randomPopulation(popSize, nParams)
     end
     return population
 end
-
+"""
+( population::Array, objective_values::Array, constraint_values::Array )::Void
+Evaluates the initial population modifying in place obj and const arrays
+"""
 function initializeFitnessValues( population::Array{Bool}, objective_values::Array{Float64}, constraint_values::Array{Float64} )::Void
   population_size, number_of_parameters = size(population)
 
@@ -59,7 +68,11 @@ end
 #########
 
 ######## Section Model
-
+"""
+(modelType::String, index::Int64, nParams::Int64)::Array{Array{Int64}}
+modelType:: 'lt' | 'mp'
+returns an array containing arrays of indexes of variables
+"""
 function generateModelForTypeAndProblemIndex(modelType::String, index::Int64, nParams::Int64)::Array{Array{Int64}}
     if index == 0
         return MPmodelForOneMax(nParams)
@@ -78,6 +91,10 @@ function generateModelForTypeAndProblemIndex(modelType::String, index::Int64, nP
     end
 end
 
+"""
+(nparams::Int64)::Array{Array{Int64}}
+returns a 1 element array containing an array of indexes of every problem variable
+"""
 function MPmodelForOneMax(nparams::Int64)::Array{Array{Int64}}
     # model has 1 additional element at last position for compatibility with LT model
     model = Array{Array{Int64}}(nparams + 1)
@@ -87,6 +104,10 @@ function MPmodelForOneMax(nparams::Int64)::Array{Array{Int64}}
     return model
 end
 
+"""
+(nparams::Int64)::Array{Array{Int64}}
+returns a Marginal Product model for deceptive thight with k = 4
+"""
 function MPmodelForDeceptive4Tight(nparams::Int64)::Array{Array{Int64}}
     number_of_blocks = Int(nparams / 4)
     # model has 1 additional element at last position for compatibility with LT model
@@ -97,6 +118,10 @@ function MPmodelForDeceptive4Tight(nparams::Int64)::Array{Array{Int64}}
     return model
 end
 
+"""
+(nparams::Int64)::Array{Array{Int64}}
+returns LT model for deceptive tight with k = 4
+"""
 function LTmodeForDeceptive4Tight(nparams::Int64)::Array{Array{Int64}}
     nodes = Int(nparams + nparams/2 + nparams/4 + 1)
     model = Array{Array{Int64}}(nodes)
@@ -117,6 +142,11 @@ end
 
 
 ######### Section Evaluation
+"""
+( index::Int64, parameters::Array{Bool} )::Tuple{Float64, Float64}
+computes fitness evaluation according to problem index
+returns obj, con
+"""
 function installedProblemEvaluation( index::Int64, parameters::Array{Bool} )::Tuple{Float64, Float64}
   global number_of_evaluations += 1
 
@@ -134,6 +164,9 @@ function installedProblemEvaluation( index::Int64, parameters::Array{Bool} )::Tu
   return fitnessEvaluation( parameters )
 end
 
+"""
+( index::Int64 )::Function
+"""
 function switchProblemEvaluation( index::Int64 )::Function
   if index == 0
     return onemaxFunctionProblemEvaluation
@@ -142,6 +175,9 @@ function switchProblemEvaluation( index::Int64 )::Function
   end
 end
 
+"""
+( parameters::Array{Bool} )::Tuple{Float64, Float64}
+"""
 function onemaxFunctionProblemEvaluation( parameters::Array{Bool} )::Tuple{Float64, Float64}
   result = 0.0
   for i = 1:length(parameters)
@@ -150,10 +186,16 @@ function onemaxFunctionProblemEvaluation( parameters::Array{Bool} )::Tuple{Float
   return (result, 0.0)
 end
 
+"""
+( parameters::Array{Bool} )::Tuple{Float64, Float64}
+"""
 function deceptiveTrap4TightEncodingFunctionProblemEvaluation( parameters::Array{Bool})::Tuple{Float64,Float64}
   return deceptiveTrapKTightEncodingFunctionProblemEvaluation( parameters, 4)
 end
 
+"""
+( parameters::Array{Bool} )::Tuple{Float64, Float64}
+"""
 function deceptiveTrapKTightEncodingFunctionProblemEvaluation( parameters::Array{Bool}, k::Int64)::Tuple{Float64,Float64}
     dim = length(parameters)
     if dim % k != 0
@@ -175,6 +217,9 @@ function deceptiveTrapKTightEncodingFunctionProblemEvaluation( parameters::Array
     return (result , 0.0)
 end
 
+"""
+( parameters::Array{Bool} )::Tuple{Float64, Float64}
+"""
 function deceptiveTrapKLooseEncodingFunctionProblemEvaluation( parameters::Array{Bool}, k::Int64)::Tuple{Float64,Float64}
     dim = length(parameters)
     if dim % k != 0
@@ -199,6 +244,16 @@ end
 
 ############# Section Crossover
 
+"""
+population::Array{Bool},
+offspring::Array{Bool},
+objective_values::Array{Float64},
+constraint_values::Array{Float64},
+objective_values_offspring::Array{Float64},
+constraint_values_offspring::Array{Float64},
+model::Array{Array{Int64}},
+model_length::Int64)::Void
+"""
 function generateAndEvaluateNewSolutionsToFillOffspring!(
     population::Array{Bool},
     offspring::Array{Bool},
@@ -226,7 +281,17 @@ function generateAndEvaluateNewSolutionsToFillOffspring!(
   return
 end
 
-# modifies a solution in place thru GOM and returns its objective value
+"""
+( population::Array{Bool}, which::Int64,
+population_size::Int64, number_of_parameters::Int64,
+result::Array{Bool},
+backup::Array{Bool},
+objective_values::Array{Float64},
+constraint_values::Array{Float64},
+model::Array{Array{Int64}},
+model_length::Int64 )::Tuple{Float64, Float64}
+modifies a solution in place thru GOM and returns its objective value
+"""
 function generateNewSolution!(
     population::Array{Bool}, which::Int64,
     population_size::Int64, number_of_parameters::Int64,
@@ -337,6 +402,10 @@ end
 
 ############# Section Selection
 
+"""
+(population::Array{Bool}, offspring::Array{Bool}, objective_values::Array{Float64}, constraint_values::Array{Float64}, objective_values_offspring::Array{Float64}, constraint_values_offspring::Array{Float64})::Void
+population modified in place
+"""
 function selectFinalSurvivors!(population::Array{Bool}, offspring::Array{Bool}, objective_values::Array{Float64}, constraint_values::Array{Float64}, objective_values_offspring::Array{Float64}, constraint_values_offspring::Array{Float64})::Void
     population .= offspring
     objective_values .= objective_values_offspring
@@ -344,6 +413,10 @@ function selectFinalSurvivors!(population::Array{Bool}, offspring::Array{Bool}, 
     return
 end
 
+"""
+(population::Array{Bool}, objective_values::Array{Float64}, constraint_values::Array{Float64})::Void
+use of global best_prevgen_solution: modified in place
+"""
 function updateBestPrevGenSolution(population::Array{Bool}, objective_values::Array{Float64}, constraint_values::Array{Float64})::Void
     replace_best_prevgen = false
 
@@ -366,7 +439,11 @@ function updateBestPrevGenSolution(population::Array{Bool}, objective_values::Ar
     return
 end
 
-function determineBestSolutionInCurrentPopulation(objective_values::Array{Float64}, constraint_values::Array{Float64})
+"""
+(objective_values::Array{Float64}, constraint_values::Array{Float64})::Int64
+returns index of best
+"""
+function determineBestSolutionInCurrentPopulation(objective_values::Array{Float64}, constraint_values::Array{Float64})::Int64
     # TODO GIVE AS INPUT
     population_size = length(objective_values)
     index_of_best = 1
@@ -379,6 +456,10 @@ function determineBestSolutionInCurrentPopulation(objective_values::Array{Float6
     return index_of_best
 end
 
+"""
+(objective_value_x::Float64, constraint_value_x::Float64, objective_value_y::Float64, constraint_value_y::Float64 )::Bool
+returns true if x is better than y
+"""
 function betterFitness(objective_value_x::Float64, constraint_value_x::Float64, objective_value_y::Float64, constraint_value_y::Float64 )::Bool
   result = false
   if (constraint_value_x > 0)
@@ -399,6 +480,10 @@ function betterFitness(objective_value_x::Float64, constraint_value_x::Float64, 
   return result
 end
 
+"""
+(objective_value_x::Float64, constraint_value_x::Float64, objective_value_y::Float64, constraint_value_y::Float64 )::Bool
+returns true if x is equal to y
+"""
 function equalFitness(objective_value_x::Float64, constraint_value_x::Float64, objective_value_y::Float64, constraint_value_y::Float64 )::Bool
   result = false
 
@@ -409,7 +494,11 @@ function equalFitness(objective_value_x::Float64, constraint_value_x::Float64, o
 end
 ########### Section Termination
 
-function checkTerminationCondition(max, vtr, tol, objective_values)::Bool
+"""
+(max::Int64, vtr::Float64, tol::Float64, objective_values::Array{Float64})::Bool
+returns true if eval > max; bestobj >= value to reach; fitness var <= tol 
+"""
+function checkTerminationCondition(max::Int64, vtr::Float64, tol::Float64, objective_values::Array{Float64})::Bool
     if number_of_evaluations >= max
         println("max eval")
         return true
