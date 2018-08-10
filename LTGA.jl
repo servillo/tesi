@@ -50,11 +50,12 @@ end
 function setPointers(::Void)
     setPointers(nothing, nothing, nothing, nothing, nothing, nothing, nothing, nothing)
 end
+
 function freePointers()
     setPointers(nothing)
 end
 
-function destroy()
+function resetGA()
     global problem_index                   = nothing
     global problem_index                   = nothing
     global population_size                 = nothing
@@ -568,7 +569,7 @@ maximum_number_of_evaluations::Int64,
 vtr::Float64,
 fitness_variance_tolerance::Float64
 """
-function main(  problem_index::Int64,
+function runGA(  problem_index::Int64,
                 number_of_parameters::Int64,
                 population_size::Int64,
                 modelType::String,
@@ -635,15 +636,15 @@ function main(  problem_index::Int64,
         # runGA()
         end
 
-        function runGA()
-            # initializeFitnessValues
-            # updateBestPrevGenSolution
-            #
-            # while termination
-            #     makeOffspring
-            #     selectFinalSurvivors
-            #     updateBestPrevGenSolution
-            # end
-        end
+        # function runGA()
+        #     # initializeFitnessValues
+        #     # updateBestPrevGenSolution
+        #     #
+        #     # while termination
+        #     #     makeOffspring
+        #     #     selectFinalSurvivors
+        #     #     updateBestPrevGenSolution
+        #     # end
+        # end
 
 end
