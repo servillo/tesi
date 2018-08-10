@@ -39,11 +39,16 @@ include("LTGA.jl")
 # LTGA.generateAndEvaluateNewSolutionsToFillOffspring!(pop, off, obj, con, obj_off, con_off, model)
 # LTGA.selectFinalSurvivors!( pop, off, obj, con, obj_off, con_off)
 @time x = 0
-@time LTGA.main(1, 12, 20, "lt", 1000000, 6.0 , 0.0 )
-LTGA.best_prevgen_objective_value
+LTGA.setGlobals(1, 20, 12, "lt")
 
+@time LTGA.main(1, 20, 16, "lt", 1000000, 6.0 , 0.0 )
+LTGA.best_prevgen_objective_value
+LTGA.
 
 const y = [1,2,3,4]
 
+# TODO: think of a way to correctly initialize ltga
+# TODO: fix types
+# TODO: fix LON utilities
 
 push!(y,0)
