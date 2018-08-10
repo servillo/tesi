@@ -31,7 +31,25 @@ function setGlobals(index::Int64, nParams::Int64, popSize::Int64, modelType::Str
     global no_improvement_stretch          = 0
     global best_prevgen_objective_value    = 0.0
     global best_prevgen_constraint_value   = 0.0
+
     return nothing
+end
+
+function setPointers(population, offspring, objective_values, constraint_values, objective_values_offspring, constraint_values_offspring, model, model_length)
+    global pop                          = population
+    global off                          = offspring
+    global obj_vals                     = objective_values
+    global con_vals                     = constraint_values
+    global obj_vals_off                 = objective_values_offspring
+    global con_vals_off                 = constraint_values_offspring
+    global mod                          = model
+    global mod_len                      = model_length
+end
+function setPointers(::Void)
+    setPointers(nothing, nothing, nothing, nothing, nothing, nothing, nothing, nothing)
+end
+function freePointers()
+    setPointers(nothing)
 end
 
 function destroy()
@@ -50,6 +68,9 @@ function destroy()
     global no_improvement_stretch          = nothing
     global best_prevgen_objective_value    = nothing
     global best_prevgen_constraint_value   = nothing
+
+    freePointers()
+
     global is_inited                       = false
     return nothing
 end
@@ -577,6 +598,7 @@ function main(  problem_index::Int64,
 
             const model_length = length(model)
 
+            setPointers(population, offspring, objective_values, constraint_values, objective_values_offspring, constraint_values_offspring, model, model_length)
             # update best initial solution
             updateBestPrevGenSolution(population, objective_values, constraint_values)
 
