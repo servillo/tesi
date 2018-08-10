@@ -1,6 +1,8 @@
 module LTGA
-############## Globals Section
 
+export runGA, resetGA
+
+############## Globals Section
 is_inited                       = false
 
 """
