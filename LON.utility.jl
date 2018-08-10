@@ -1,4 +1,4 @@
-include("classes.jl")
+include("Classes.jl")
 include("Decoder.jl")
 using Decoder
 using Classes
