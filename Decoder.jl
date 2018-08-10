@@ -3,16 +3,11 @@ include("Classes.jl")
 module Decoder
 using Classes
 
-problem_index  = -1
-problem_size   = -1
-
 export setupIndexes, decodeOptimum, codeOptimum, initializeBlocks,
        evaluateBlock, getIndexesForDeceptiveProblem, getKforProblemIndex,
        getAllOptimaIndexes
 
 function setupIndexes(index, size)
-  global problem_index = index
-  global problem_size  = size
   k = getKforProblemIndex( index )
 
   global indexes = Array{Array{Int64}}(Int(size / k))
@@ -22,7 +17,14 @@ function setupIndexes(index, size)
   return nothing
 end
 
-function decodeOptimum( base_10_optimum::Int64, problem_size::Int64, problem_index::Int64, indexes)
+function decodeAllOptima(codedOptima, problem_index, problem_size)
+  indexes = setupIndexes(problem_index, problem_size)
+end
+
+function decodeOptimum( base_10_optimum::Int64, problem_size::Int64, problem_index::Int64, blocks...)
+  if !isdefined(Decoder.:indexes) && !isdefined(:blocks)
+    return error("indexes for problem not initialized. call setupIndexes(index, problem_size)")
+  end
   k = getKforProblemIndex(problem_index)
   stringCodification = bin(base_10_optimum, Int(problem_size / k))
   solution = Array{Bool}(problem_size)
@@ -109,6 +111,4 @@ function getAllOptimaIndexes( problem_size::Int64, problem_index::Int64 )::UnitR
 end
 
 
-function decodeAllOptima(codedOptima)
-end
 end
