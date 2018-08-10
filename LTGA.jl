@@ -31,6 +31,15 @@ function setGlobals(index::Int64, nParams::Int64, popSize::Int64, modelType::Str
     global no_improvement_stretch          = 0
     global best_prevgen_objective_value    = 0.0
     global best_prevgen_constraint_value   = 0.0
+
+    global population = randomPopulation(population_size, number_of_parameters)
+    global offspring = Array{Bool}(population_size, number_of_parameters)
+    global objective_values = Array{Float64}(population_size)
+    global constraint_values = Array{Float64}(population_size)
+    global objective_values_offspring = Array{Float64}(population_size)
+    global constraint_values_offspring = Array{Float64}(population_size)
+    global model = generateModelForTypeAndProblemIndex(modelType, problem_index, number_of_parameters)
+    global model_length = length(model)
     return nothing
 end
 
@@ -50,11 +59,19 @@ function destroy()
     global no_improvement_stretch          = nothing
     global best_prevgen_objective_value    = nothing
     global best_prevgen_constraint_value   = nothing
+
+    global population                      = nothing
+    global offspring                       = nothing
+    global objective_values                = nothing
+    global constraint_values               = nothing
+    global objective_values_offspring      = nothing
+    global constraint_values_offspring     = nothing
+    global model                           = nothing
+    global model_length                    = nothing
+
     global is_inited                       = false
     return nothing
 end
-
-
 
 ######## Section Initialize
 """
@@ -73,7 +90,7 @@ end
 ( population::Array, objective_values::Array, constraint_values::Array )::Void
 Evaluates the initial population modifying in place obj and const arrays
 """
-function initializeFitnessValues( population::Array{Bool}, objective_values::Array{Float64}, constraint_values::Array{Float64} )::Void
+function initializeFitnessValues()::Void
   population_size, number_of_parameters = size(population)
 
   for i = 1:population_size
@@ -272,24 +289,12 @@ constraint_values_offspring::Array{Float64},
 model::Array{Array{Int64}},
 model_length::Int64)::Void
 """
-function generateAndEvaluateNewSolutionsToFillOffspring!(
-    population::Array{Bool},
-    offspring::Array{Bool},
-    objective_values::Array{Float64},
-    constraint_values::Array{Float64},
-    objective_values_offspring::Array{Float64},
-    constraint_values_offspring::Array{Float64},
-    model::Array{Array{Int64}},
-    model_length::Int64)::Void
+function generateAndEvaluateNewSolutionsToFillOffspring!()::Void
 
   const backup = Array{Bool}(number_of_parameters)
   const solution = Array{Bool}(number_of_parameters)
   for i = 1:offspring_size
-    obj, con = generateNewSolution!(population, i, population_size,
-                                    number_of_parameters,
-                                    solution, backup,
-                                    objective_values, constraint_values,
-                                    model, model_length )
+    obj, con = generateNewSolution!( i, solution, backup)
 
     objective_values_offspring[i] = obj
     constraint_values_offspring[i] = con
@@ -310,15 +315,7 @@ model::Array{Array{Int64}},
 model_length::Int64 )::Tuple{Float64, Float64}
 modifies a solution in place thru GOM and returns its objective value
 """
-function generateNewSolution!(
-    population::Array{Bool}, which::Int64,
-    population_size::Int64, number_of_parameters::Int64,
-    result::Array{Bool},
-    backup::Array{Bool},
-    objective_values::Array{Float64},
-    constraint_values::Array{Float64},
-    model::Array{Array{Int64}},
-    model_length::Int64 )::Tuple{Float64, Float64}
+function generateNewSolution!( which::Int64, result::Array{Bool}, backup::Array{Bool} )::Tuple{Float64, Float64}
 
   solution_has_changed = false
   is_unchanged = true
@@ -424,7 +421,7 @@ end
 (population::Array{Bool}, offspring::Array{Bool}, objective_values::Array{Float64}, constraint_values::Array{Float64}, objective_values_offspring::Array{Float64}, constraint_values_offspring::Array{Float64})::Void
 population modified in place
 """
-function selectFinalSurvivors!(population::Array{Bool}, offspring::Array{Bool}, objective_values::Array{Float64}, constraint_values::Array{Float64}, objective_values_offspring::Array{Float64}, constraint_values_offspring::Array{Float64})::Void
+function selectFinalSurvivors!()::Void
     population .= offspring
     objective_values .= objective_values_offspring
     constraint_values .= constraint_values_offspring
@@ -435,10 +432,10 @@ end
 (population::Array{Bool}, objective_values::Array{Float64}, constraint_values::Array{Float64})::Void
 use of global best_prevgen_solution: modified in place
 """
-function updateBestPrevGenSolution(population::Array{Bool}, objective_values::Array{Float64}, constraint_values::Array{Float64})::Void
+function updateBestPrevGenSolution()::Void
     replace_best_prevgen = false
 
-    individual_index_best = determineBestSolutionInCurrentPopulation(objective_values, constraint_values)
+    individual_index_best = determineBestSolutionInCurrentPopulation()
 
     if (number_of_generations == 0)
         replace_best_prevgen = true
@@ -461,7 +458,7 @@ end
 (objective_values::Array{Float64}, constraint_values::Array{Float64})::Int64
 returns index of best
 """
-function determineBestSolutionInCurrentPopulation(objective_values::Array{Float64}, constraint_values::Array{Float64})::Int64
+function determineBestSolutionInCurrentPopulation()::Int64
     # TODO GIVE AS INPUT
     population_size = length(objective_values)
     index_of_best = 1
@@ -516,7 +513,7 @@ end
 (max::Int64, vtr::Float64, tol::Float64, objective_values::Array{Float64})::Bool
 returns true if eval > max; bestobj >= value to reach; fitness var <= tol
 """
-function checkTerminationCondition(max::Int64, vtr::Float64, tol::Float64, objective_values::Array{Float64})::Bool
+function checkTerminationCondition(max::Int64, vtr::Float64, tol::Float64)::Bool
     if number_of_evaluations >= max
         println("max eval")
         return true
@@ -559,37 +556,30 @@ function main(  problem_index::Int64,
             const print_verbose_overview        = true
             const print_lt_contents             = true
    ############# Run
-            const population = randomPopulation(population_size, number_of_parameters)
-            const offspring = Array{Bool}(population_size, number_of_parameters)
-            const objective_values = Array{Float64}(population_size)
-            const constraint_values = Array{Float64}(population_size)
-            const objective_values_offspring = Array{Float64}(population_size)
-            const constraint_values_offspring = Array{Float64}(population_size)
+            # const population = randomPopulation(population_size, number_of_parameters)
+            # const offspring = Array{Bool}(population_size, number_of_parameters)
+            # const objective_values = Array{Float64}(population_size)
+            # const constraint_values = Array{Float64}(population_size)
+            # const objective_values_offspring = Array{Float64}(population_size)
+            # const constraint_values_offspring = Array{Float64}(population_size)
 
             # set LTGA globals
             setGlobals(problem_index, number_of_parameters, population_size, modelType)
 
             # evaluate initial population
-            initializeFitnessValues(population, objective_values, constraint_values)
+            initializeFitnessValues()
 
             # generate a fixed model
-            const model = generateModelForTypeAndProblemIndex(modelType, problem_index, number_of_parameters)
+            # const model = generateModelForTypeAndProblemIndex(modelType, problem_index, number_of_parameters)
 
-            const model_length = length(model)
+            # const model_length = length(model)
 
             # update best initial solution
-            updateBestPrevGenSolution(population, objective_values, constraint_values)
+            updateBestPrevGenSolution()
 
-            while !checkTerminationCondition(maximum_number_of_evaluations, vtr, fitness_variance_tolerance, objective_values)
+            while !checkTerminationCondition(maximum_number_of_evaluations, vtr, fitness_variance_tolerance)
 
-                generateAndEvaluateNewSolutionsToFillOffspring!( population,
-                                                                offspring,
-                                                                objective_values,
-                                                                constraint_values,
-                                                                objective_values_offspring,
-                                                                constraint_values_offspring,
-                                                                model,
-                                                                model_length)
+                generateAndEvaluateNewSolutionsToFillOffspring!()
 
 
                 # update best solution in generation
@@ -598,14 +588,9 @@ function main(  problem_index::Int64,
                 # place edges
                 # LONutilites.placeEdge( LON, best_gen_solution)
 
-                selectFinalSurvivors!( population,
-                                      offspring,
-                                      objective_values,
-                                      constraint_values,
-                                      objective_values_offspring,
-                                      constraint_values_offspring)
+                selectFinalSurvivors!()
 
-                updateBestPrevGenSolution( population, objective_values, constraint_values)
+                updateBestPrevGenSolution()
             end
 
         # runGA()
