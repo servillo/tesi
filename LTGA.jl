@@ -9,7 +9,7 @@ To call only once when setting up the problem
 """
 function setGlobals(index::Int64, nParams::Int64, popSize::Int64, modelType::String)::Void
     if is_inited
-        return error("LTGA was already initialized")
+        return error("LTGA is already initialized. Call LTGA.destroy()")
     end
     println("LTGA initialized with parameters:\n",
     "model type:            ", modelType, "\n",
@@ -17,24 +17,42 @@ function setGlobals(index::Int64, nParams::Int64, popSize::Int64, modelType::Str
     "number of parameters:  ", nParams, "\n",
     "population size:       ", popSize)
 
-    global const problem_index             = index
-    global const population_size           = popSize
-    global const offspring_size            = popSize
-    global const number_of_parameters      = nParams
+    global problem_index             = index
+    global population_size           = popSize
+    global offspring_size            = popSize
+    global number_of_parameters      = nParams
     # global const model_length                    = length(generateModelForTypeAndProblemIndex(modelType, index, nParams))
-    global const limit_no_improvement      = (1 + log(population_size) / log(10))
+    global limit_no_improvement      = (1 + log(population_size) / log(10))
 
-    global const best_prevgen_solution     = Array{Bool}(number_of_parameters)
+    global best_prevgen_solution     = Array{Bool}(number_of_parameters)
     global is_inited                       = true
     global number_of_evaluations           = 0
     global number_of_generations           = 0
     global no_improvement_stretch          = 0
     global best_prevgen_objective_value    = 0.0
     global best_prevgen_constraint_value   = 0.0
-    return
+    return nothing
 end
 
+function destroy()
+    global problem_index                   = nothing
+    global problem_index                   = nothing
+    global population_size                 = nothing
+    global offspring_size                  = nothing
+    global number_of_parameters            = nothing
+    # global const model_length                    = length(generateModelForTypeAndProblemIndex(modelType, index, nParams))
+    global limit_no_improvement            = nothing
 
+    global best_prevgen_solution           = nothing
+    global is_inited                       = nothing
+    global number_of_evaluations           = nothing
+    global number_of_generations           = nothing
+    global no_improvement_stretch          = nothing
+    global best_prevgen_objective_value    = nothing
+    global best_prevgen_constraint_value   = nothing
+    global is_inited                       = false
+    return nothing
+end
 
 
 
@@ -496,7 +514,7 @@ end
 
 """
 (max::Int64, vtr::Float64, tol::Float64, objective_values::Array{Float64})::Bool
-returns true if eval > max; bestobj >= value to reach; fitness var <= tol 
+returns true if eval > max; bestobj >= value to reach; fitness var <= tol
 """
 function checkTerminationCondition(max::Int64, vtr::Float64, tol::Float64, objective_values::Array{Float64})::Bool
     if number_of_evaluations >= max
@@ -505,38 +523,35 @@ function checkTerminationCondition(max::Int64, vtr::Float64, tol::Float64, objec
     end
     if vtr > zero(vtr)
         if best_prevgen_objective_value >= vtr
-            println("vtr hit")
+            println("vtr hit :", best_prevgen_objective_value)
             return true
         end
     end
     if var(objective_values, corrected = false) <= tol
-        println("no variance")
+        println("no variance. Best fitness: ", best_prevgen_objective_value)
         return true
     end
     return false
 end
 
 ########### Section Main
-function runGA()
-    # initializeFitnessValues
-    # updateBestPrevGenSolution
-    #
-    # while termination
-    #     makeOffspring
-    #     selectFinalSurvivors
-    #     updateBestPrevGenSolution
-    # end
 
-
-end
-
-function main(  problem_index,
-                number_of_parameters,
-                population_size,
-                modelType,
-                maximum_number_of_evaluations,
-                vtr,
-                fitness_variance_tolerance
+"""
+problem_index::Int64,
+number_of_parameters::Int64,
+population_size::Int64,
+modelType::String,
+maximum_number_of_evaluations::Int64,
+vtr::Float64,
+fitness_variance_tolerance::Float64
+"""
+function main(  problem_index::Int64,
+                number_of_parameters::Int64,
+                population_size::Int64,
+                modelType::String,
+                maximum_number_of_evaluations::Int64,
+                vtr::Float64,
+                fitness_variance_tolerance::Float64
                 )
   ############## Options Section
             const write_generational_statistics = true
@@ -594,6 +609,17 @@ function main(  problem_index,
             end
 
         # runGA()
+        end
+
+        function runGA()
+            # initializeFitnessValues
+            # updateBestPrevGenSolution
+            #
+            # while termination
+            #     makeOffspring
+            #     selectFinalSurvivors
+            #     updateBestPrevGenSolution
+            # end
         end
 
 end
