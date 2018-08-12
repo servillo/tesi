@@ -19,9 +19,11 @@ function decodeAllOptima(codedOptima, problem_index, problem_size)
   indexes = setupIndexes(problem_index, problem_size)
 end
 
-function decodeOptimum( base_10_optimum::Int64, problem_size::Int64, problem_index::Int64, blocks...)
-  if !isdefined(Decoder.:indexes) && !isdefined(:blocks)
-    return error("indexes for problem not initialized. call setupIndexes(index, problem_size)")
+function decodeOptimum( base_10_optimum::Int64, problem_size::Int64, problem_index::Int64)
+  try
+    length(Decoder.indexes)
+  catch
+    setupIndexes(problem_index, problem_size)
   end
   k = getKforProblemIndex(problem_index)
   stringCodification = bin(base_10_optimum, Int(problem_size / k))
