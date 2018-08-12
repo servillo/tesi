@@ -1,21 +1,24 @@
-include("Classes.jl")
-include("Decoder.jl")
-using Decoder
+module LocalSearch
 using Classes
-using Gallium
+using Decoder
 
-# mutable struct Block
-#   indexes::Array{Int64}
-#   fitness::Float64
-# end
-bestImprovementLocalSearch!([true,true,false,false,true,true,false,true],1)
+export LocalSearchPopulation!, isLocalOptimum
+
+function LocalSearchPopulation!( population::Array{Bool}, problem_index::Int64)
+  for i = 1:length(population[:,1])
+    sol = population[i,:]
+    bestImprovementLocalSearch!( sol, problem_index)
+    population[i,:] = sol
+  end
+  return nothing
+end
 
 function bestImprovementLocalSearch!( parameters::Array{Bool}, problem_index::Int64)
 
   const blocks = initializeBlocks(parameters, problem_index)
 
   LocalSearch!( parameters, blocks, problem_index)
-  return parameters
+  return nothing
 end
 
 function LocalSearch!( parameters::Array{Bool}, blocks::Array{Block}, problem_index::Int64)
@@ -40,4 +43,18 @@ function LocalSearch!( parameters::Array{Bool}, blocks::Array{Block}, problem_in
     LocalSearch!( parameters, blocks, problem_index)
   end
   return nothing
+end
+
+function isLocalOptimum( solution::Array{Bool}, problem_index)
+  const backup = copy(solution)
+  bestImprovementLocalSearch!(solution, problem_index)
+  if solution == backup
+    res = true
+  else
+    res = false
+  end
+  solution .= backup
+  return res
+end
+
 end
