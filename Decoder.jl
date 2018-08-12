@@ -100,7 +100,7 @@ function base10(strSolution::String)
   return parse(Int,strSolution,2)
 end
 
-function getAllOptimaIndexes( problem_size::Int64, problem_index::Int64 )::UnitRange{Int64}
+function getAllOptimaIndexes( problem_index::Int64, problem_size::Int64 )::UnitRange{Int64}
   if problem_index == 0
     return (2^problem_size - 1) < 0  ? error("problem too big") : (2^problem_size-1):(2^problem_size-1)
   elseif problem_index < 5
