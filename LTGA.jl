@@ -5,8 +5,9 @@ module LTGA
 
 using ModelUtility
 
+using LocalSearch
 
-export runGA, resetGA
+export runGA, resetGA, setGlobals
 
 ############## Globals Section
 is_inited                       = false
@@ -17,7 +18,10 @@ To call only once when setting up the problem
 """
 function setGlobals(index::Int64, nParams::Int64, popSize::Int64, modelType::String)::Void
     if is_inited
-        return error("LTGA is already initialized. Call LTGA.destroy()")
+        if index != problem_index || nParams != number_of_parameters || popSize != population_size #|| modelType != model_type
+            println("LTGA reset...")
+            resetGA()
+    end
     end
     println("LTGA initialized with parameters:\n",
     "model type:            ", modelType, "\n",
@@ -509,6 +513,9 @@ function runGA(  problem_index::Int64,
                 vtr::Float64,
                 fitness_variance_tolerance::Float64
                 )
+
+            # set LTGA globals
+            setGlobals(problem_index, number_of_parameters, population_size, modelType)
   ############## Options Section
             const write_generational_statistics = true
             const write_generational_solutions  = true
