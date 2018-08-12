@@ -467,6 +467,39 @@ function equalFitness(objective_value_x::Float64, constraint_value_x::Float64, o
   end
   return result
 end
+
+########### Section LON
+
+"""
+(objective_values::Array{Float64}, constraint_values::Array{Float64})::Int64
+returns indices of best
+"""
+function trackBestMultipleSolutionsInPopulation(population::Array{Bool}, objective_values::Array{Float64}, constraint_values::Array{Float64},  problem_index::Int64)::Array{Int64}
+    # TODO GIVE AS INPUT
+    population_size = length(objective_values)
+    indices = []
+    index_of_best = 1
+    for i = 1:population_size
+        if betterFitness( objective_values[i], constraint_values[i],
+                        objective_values[index_of_best], constraint_values[index_of_best] )
+            indices = []
+            index_of_best = i
+            push!(indices, index_of_best)
+        elseif equalFitness( objective_values[i], constraint_values[i],
+                        objective_values[index_of_best], constraint_values[index_of_best] )
+            push!(indices, i)
+        end
+    end
+    n_best = length(indices)
+    codedBestSolutions = Array{Int64}(n_best)
+    for i = 1:n_best
+        codedBestSolutions[i] = codeOptimum( population[indices[i],:], problem_index )
+    end
+    return codedBestSolutions
+end
+
+
+
 ########### Section Termination
 
 """
@@ -526,9 +559,14 @@ function runGA(  problem_index::Int64,
             const objective_values_offspring = Array{Float64}(population_size)
             const constraint_values_offspring = Array{Float64}(population_size)
 
+            # LON Variables
+            const best_gen_solutions_coded = Int64[]
 
             # Local Search population
             LocalSearchPopulation!( population, problem_index)
+
+            # initilize LON
+            constructLON(problem_index, number_of_parameters)
 
             # evaluate initial population
             initializeFitnessValues(population, objective_values, constraint_values)
@@ -539,10 +577,15 @@ function runGA(  problem_index::Int64,
             const model_length = length(model)
 
             setPointers(population, offspring, objective_values, constraint_values, objective_values_offspring, constraint_values_offspring, model, model_length)
-            # update best initial solution
+            # update best solution
             updateBestPrevGenSolution(population, objective_values, constraint_values)
+            global number_of_generations += 1
 
             while !checkTerminationCondition(maximum_number_of_evaluations, vtr, fitness_variance_tolerance, objective_values)
+                global number_of_generations += 1
+                # update best solutions in generation
+                bestSolsCoded = trackBestMultipleSolutionsInPopulation(population, objective_values, constraint_values, problem_index)
+
 
                 generateAndEvaluateNewSolutionsToFillOffspring!( population,
                                                                 offspring,
@@ -554,11 +597,6 @@ function runGA(  problem_index::Int64,
                                                                 model_length)
 
 
-                # update best solution in generation
-                # updateBestGenSolution(population, objective_values, constraint_values)
-
-                # place edges
-                # LONutilites.placeEdge( LON, best_gen_solution)
 
                 selectFinalSurvivors!( population,
                                       offspring,
@@ -567,21 +605,16 @@ function runGA(  problem_index::Int64,
                                       objective_values_offspring,
                                       constraint_values_offspring)
 
+                # update best solution in generation
+                newBestSolsCoded = trackBestMultipleSolutionsInPopulation(population, objective_values, constraint_values, problem_index)
+
+                # place edges
+                placeEdges( bestSolsCoded, newBestSolsCoded )
+
                 updateBestPrevGenSolution( population, objective_values, constraint_values)
+
             end
 
-        # runGA()
         end
-
-        # function runGA()
-        #     # initializeFitnessValues
-        #     # updateBestPrevGenSolution
-        #     #
-        #     # while termination
-        #     #     makeOffspring
-        #     #     selectFinalSurvivors
-        #     #     updateBestPrevGenSolution
-        #     # end
-        # end
 
 end
