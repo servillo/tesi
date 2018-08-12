@@ -529,8 +529,9 @@ function runGA(  problem_index::Int64,
             const objective_values_offspring = Array{Float64}(population_size)
             const constraint_values_offspring = Array{Float64}(population_size)
 
-            # set LTGA globals
-            setGlobals(problem_index, number_of_parameters, population_size, modelType)
+
+            # Local Search population
+            LocalSearchPopulation!( population, problem_index)
 
             # evaluate initial population
             initializeFitnessValues(population, objective_values, constraint_values)
