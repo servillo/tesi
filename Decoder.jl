@@ -1,5 +1,3 @@
-include("Classes.jl")
-
 module Decoder
 using Classes
 
