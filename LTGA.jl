@@ -1,12 +1,9 @@
-include("ModelUtility.jl")
-# include("LocalSearch.jl")
-
 module LTGA
 
 using ModelUtility
-
+using Decoder
 using LocalSearch
-
+using LONutility
 export runGA, resetGA, setGlobals
 
 ############## Globals Section
