@@ -493,6 +493,7 @@ function trackBestMultipleSolutionsInPopulation(population::Array{Bool}, objecti
         end
     end
     n_best = length(indices)
+    # TODO Fix for loop -> useless. Just return the number of optima and 1 encoded
     codedBestSolutions = Array{Int64}(n_best)
     for i = 1:n_best
         codedBestSolutions[i] = codeOptimum( population[indices[i],:], problem_index )
@@ -581,12 +582,13 @@ function runGA(  problem_index::Int64,
             setPointers(population, offspring, objective_values, constraint_values, objective_values_offspring, constraint_values_offspring, model, model_length)
             # update best solution
             updateBestPrevGenSolution(population, objective_values, constraint_values)
-            global number_of_generations += 1
 
+            newBestSolsCoded = trackBestMultipleSolutionsInPopulation(population, objective_values, constraint_values, problem_index)
+
+            global number_of_generations += 1
             while !checkTerminationCondition(maximum_number_of_evaluations, vtr, fitness_variance_tolerance, objective_values)
-                global number_of_generations += 1
                 # update best solutions in generation
-                bestSolsCoded = trackBestMultipleSolutionsInPopulation(population, objective_values, constraint_values, problem_index)
+                bestSolsCoded = copy(newBestSolsCoded)
 
 
                 generateAndEvaluateNewSolutionsToFillOffspring!( population,
@@ -607,7 +609,7 @@ function runGA(  problem_index::Int64,
                                       objective_values_offspring,
                                       constraint_values_offspring)
 
-                # update best solution in generation
+                # update best solutions in generation
                 newBestSolsCoded = trackBestMultipleSolutionsInPopulation(population, objective_values, constraint_values, problem_index)
 
                 # place edges
@@ -615,6 +617,7 @@ function runGA(  problem_index::Int64,
 
                 updateBestPrevGenSolution( population, objective_values, constraint_values)
 
+                global number_of_generations += 1
             end
 
         end
