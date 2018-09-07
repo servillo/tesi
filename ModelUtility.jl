@@ -15,7 +15,7 @@ function generateModelForTypeAndProblemIndex(modelType::String, index::Int64, nP
     else
         if modelType == "lt"
             if index == 1
-                return LTmodeForDeceptive4Tight(nParams)
+                return LTmodelForDeceptive4Tight(nParams)
             elseif index == 2
                 return LTmodelForDeceptive5Tight(nParams)
             elseif index == 3
@@ -113,39 +113,39 @@ end
 (nparams::Int64)::Array{Array{Int64}}
 returns LT model for deceptive tight with k = 4
 """
-function LTmodeForDeceptive4Tight(nparams::Int64, k::Int64)::Array{Array{Int64}}
-    return LTmodeForDeceptiveKTight(nparams, 4)
+function LTmodelForDeceptive4Tight(nparams::Int64)::Array{Array{Int64}}
+    return LTmodelForDeceptiveKTight(nparams, 4)
 end
 
 """
 (nparams::Int64)::Array{Array{Int64}}
 returns LT model for deceptive tight with k = 5
 """
-function LTmodeForDeceptive5Tight(nparams::Int64, k::Int64)::Array{Array{Int64}}
-    return LTmodeForDeceptiveKTight(nparams, 5)
+function LTmodelForDeceptive5Tight(nparams::Int64)::Array{Array{Int64}}
+    return LTmodelForDeceptiveKTight(nparams, 5)
 end
 
 """
 (nparams::Int64)::Array{Array{Int64}}
 returns LT model for deceptive loose with k = 4
 """
-function LTmodeForDeceptive4Loose(nparams::Int64, k::Int64)::Array{Array{Int64}}
-    return LTmodeForDeceptiveKLoose(nparams, 4)
+function LTmodelForDeceptive4Loose(nparams::Int64)::Array{Array{Int64}}
+    return LTmodelForDeceptiveKLoose(nparams, 4)
 end
 
 """
 (nparams::Int64)::Array{Array{Int64}}
 returns LT model for deceptive loose with k = 5
 """
-function LTmodeForDeceptive5Loose(nparams::Int64, k::Int64)::Array{Array{Int64}}
-    return LTmodeForDeceptiveKLoose(nparams, 5)
+function LTmodelForDeceptive5Loose(nparams::Int64)::Array{Array{Int64}}
+    return LTmodelForDeceptiveKLoose(nparams, 5)
 end
 
 """
 (nparams::Int64)::Array{Array{Int64}}
 returns LT model for deceptive tight for any k
 """
-function LTmodeForDeceptiveKTight(nparams::Int64, k::Int64)::Array{Array{Int64}}
+function LTmodelForDeceptiveKTight(nparams::Int64, k::Int64)::Array{Array{Int64}}
     const roundedHalf = round(Int, nparams/2, RoundDown)
     const blocks = Int(nparams / k)
     nodes = Int(nparams + roundedHalf + blocks + 1)
