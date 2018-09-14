@@ -525,9 +525,8 @@ function trackBestMultipleSolutionsInPopulation(population::Array{Bool}, objecti
     for i = 1:n_best
         codedBestSolutions[i] = codeOptimum( population[indices[i],:], problem_index )
     end
-    return codedBestSolutions
+    return unique(codedBestSolutions)
 end
-
 
 
 ########### Section Termination
@@ -547,8 +546,9 @@ function checkTerminationCondition(max::Int64, vtr::Float64, tol::Float64, objec
             return true
         end
     end
-    if var(objective_values, corrected = false) <= tol
-        println("no variance. Best fitness: ", best_prevgen_objective_value)
+    const variance = var(objective_values, corrected = false)
+    if variance <= tol + 0.0001  # necessary because sometimes variance is computed as almost zero
+        println("variance: ", variance, ". Best fitness: ", best_prevgen_objective_value)
         return true
     end
     return false
@@ -589,7 +589,6 @@ function runGA(  problem_index::Int64,
             const objective_values_offspring = Array{Float64}(population_size)
             const constraint_values_offspring = Array{Float64}(population_size)
 
-            # LON Variables
             const best_gen_solutions_coded = Int64[]
 
             # Local Search population
@@ -613,7 +612,7 @@ function runGA(  problem_index::Int64,
             newBestSolsCoded = trackBestMultipleSolutionsInPopulation(population, objective_values, constraint_values, problem_index)
 
             global number_of_generations += 1
-            while !checkTerminationCondition(maximum_number_of_evaluations, vtr, fitness_variance_tolerance, objective_values)
+            while !(checkTerminationCondition(maximum_number_of_evaluations, vtr, fitness_variance_tolerance, objective_values) ||  number_of_generations > 1000)
                 # update best solutions in generation
                 bestSolsCoded = copy(newBestSolsCoded)
 

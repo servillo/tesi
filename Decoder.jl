@@ -44,7 +44,7 @@ function codeOptimum( optimum, problem_index )
   blocks = initializeBlocks( optimum, problem_index)
   stringCodification = ""
   for i = 1:length(blocks)
-    if blocks[i].fitness == .75
+    if sum(optimum[blocks[i].indexes]) == 0
       stringCodification *= "0"
     elseif blocks[i].fitness == 1.0
       stringCodification *= "1"
