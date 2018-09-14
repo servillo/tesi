@@ -83,6 +83,9 @@ function resetGA()
     global best_prevgen_objective_value    = nothing
     global best_prevgen_constraint_value   = nothing
 
+    # uninitialize LON
+    LONutility.destroy()
+
     freePointers()
 
     global is_inited                       = false
