@@ -14,7 +14,7 @@ unexplored = 0
 function destroy()
     isConstructed = false
     unexplored = 0
-    return "LON reset..."
+    return println("LON reset...")
 end
 
 function constructLON( problem_index, number_of_parameters )
