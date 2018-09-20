@@ -86,6 +86,9 @@ function resetGA()
     # uninitialize LON
     LONutility.destroy()
 
+    # uninitialize Decoder
+    Decoder.destroy()
+    
     freePointers()
 
     global is_inited                       = false
@@ -506,7 +509,7 @@ end
 (objective_values::Array{Float64}, constraint_values::Array{Float64})::Int64
 returns indices of best
 """
-function trackBestMultipleSolutionsInPopulation(population::Array{Bool}, objective_values::Array{Float64}, constraint_values::Array{Float64},  problem_index::Int64)::Array{Int64}
+function trackBestMultipleSolutionsInPopulation(population::Array{Bool}, objective_values::Array{Float64}, constraint_values::Array{Float64},  problem_index::Int64)::Tuple{Array{Int64}, Float64}
     # TODO GIVE AS INPUT
     population_size = length(objective_values)
     indices = []
@@ -528,9 +531,39 @@ function trackBestMultipleSolutionsInPopulation(population::Array{Bool}, objecti
     for i = 1:n_best
         codedBestSolutions[i] = codeOptimum( population[indices[i],:], problem_index )
     end
-    return unique(codedBestSolutions)
+    best_fitness = maximum(objective_values)
+    return (unique(codedBestSolutions), best_fitness)
 end
 
+"""
+(objective_values::Array{Float64}, constraint_values::Array{Float64})::Int64
+returns indices of best
+"""
+function trackBestMultipleSolutionsInPopulation(population::Array{Bool}, prev_best_fitness::Float64, objective_values::Array{Float64}, constraint_values::Array{Float64},  problem_index::Int64)::Tuple{Array{Int64}, Float64}
+    # TODO GIVE AS INPUT
+    population_size = length(objective_values)
+    indices = []
+    index_of_best = 1
+    for i = 1:population_size
+        if betterFitness( objective_values[i], constraint_values[i],
+                        objective_values[index_of_best], constraint_values[index_of_best] ) && objective_values[i] > prev_best_fitness
+            indices = []
+            index_of_best = i
+            push!(indices, index_of_best)
+        elseif equalFitness( objective_values[i], constraint_values[i],
+                        objective_values[index_of_best], constraint_values[index_of_best] ) && objective_values[i] > prev_best_fitness
+            push!(indices, i)
+        end
+    end
+    n_best = length(indices)
+    # TODO Fix for loop -> useless. Just return the number of optima and 1 encoded
+    codedBestSolutions = Array{Int64}(n_best)
+    for i = 1:n_best
+        codedBestSolutions[i] = codeOptimum( population[indices[i],:], problem_index )
+    end
+    best_fitness = maximum(objective_values)
+    return (unique(codedBestSolutions), best_fitness)
+end
 
 ########### Section Termination
 
@@ -550,7 +583,8 @@ function checkTerminationCondition(max::Int64, vtr::Float64, tol::Float64, objec
         end
     end
     const variance = var(objective_values, corrected = false)
-    if variance <= tol + 0.0001  # necessary because sometimes variance is computed as almost zero
+    tol < 0.0001 ? tol = 0.0001 : nothing   # necessary because sometimes variance is computed as almost zero
+    if variance <= tol
         println("variance: ", variance, ". Best fitness: ", best_prevgen_objective_value)
         return true
     end
@@ -585,17 +619,18 @@ function runGA(  problem_index::Int64,
             const print_verbose_overview        = true
             const print_lt_contents             = true
    ############# Run
-            const population = randomPopulation(population_size, number_of_parameters)
             const offspring = Array{Bool}(population_size, number_of_parameters)
             const objective_values = Array{Float64}(population_size)
             const constraint_values = Array{Float64}(population_size)
             const objective_values_offspring = Array{Float64}(population_size)
             const constraint_values_offspring = Array{Float64}(population_size)
 
-            const best_gen_solutions_coded = Int64[]
+
+            # const population = randomPopulation(population_size, number_of_parameters)
+            const population = getUnexploredInitialPopulation(problem_index, population_size, number_of_parameters)
 
             # Local Search population
-            LocalSearchPopulation!( population, problem_index)
+            # LocalSearchPopulation!( population, problem_index)
 
             # initilize LON
             constructLON(problem_index, number_of_parameters)
@@ -612,13 +647,13 @@ function runGA(  problem_index::Int64,
             # update best solution
             updateBestPrevGenSolution(population, objective_values, constraint_values)
 
-            newBestSolsCoded = trackBestMultipleSolutionsInPopulation(population, objective_values, constraint_values, problem_index)
+
+            newBestSolsCoded, prev_best_fitness = trackBestMultipleSolutionsInPopulation(population, objective_values, constraint_values, problem_index)
 
             global number_of_generations += 1
-            while !(checkTerminationCondition(maximum_number_of_evaluations, vtr, fitness_variance_tolerance, objective_values) ||  number_of_generations > 1000)
+            while !checkTerminationCondition(maximum_number_of_evaluations, vtr, fitness_variance_tolerance, objective_values)
                 # update best solutions in generation
                 bestSolsCoded = copy(newBestSolsCoded)
-
 
                 generateAndEvaluateNewSolutionsToFillOffspring!( population,
                                                                 offspring,
@@ -639,7 +674,8 @@ function runGA(  problem_index::Int64,
                                       constraint_values_offspring)
 
                 # update best solutions in generation
-                newBestSolsCoded = trackBestMultipleSolutionsInPopulation(population, objective_values, constraint_values, problem_index)
+                newBestSolsCoded, best_fitness = trackBestMultipleSolutionsInPopulation(population, prev_best_fitness, objective_values, constraint_values, problem_index)
+                prev_best_fitness = best_fitness
 
                 # place edges
                 placeEdges( bestSolsCoded, newBestSolsCoded )
