@@ -90,7 +90,7 @@ function MPmodelForDeceptiveKTight(nparams::Int64, k::Int64)::Array{Array{Int64}
     # model has 1 additional element at last position for compatibility with LT model
     model = Array{Array{Int64}}(number_of_blocks + 1)
     for i = 1:number_of_blocks
-        model[i] = [j for j = k(i-1) + 1: k(i-1) + k]
+        model[i] = [j for j = k*(i-1) + 1: k*(i-1) + k]
     end
     return model
 end
