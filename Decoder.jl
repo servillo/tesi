@@ -5,11 +5,15 @@ using Classes
 
 export setupIndexes, decodeOptimum, codeOptimum, initializeBlocks,
        evaluateBlock, getIndexesForDeceptiveProblem, getKforProblemIndex,
-       getAllOptimaIndexes
+       getAllOptimaIndexes, destroy
+
+isInitialized = false
+indexes = 0
 
 function setupIndexes(index, size)
-  k = getKforProblemIndex( index )
+  global isInitialized = true
 
+  k = getKforProblemIndex( index )
   global indexes = Array{Array{Int64}}(Int(size / k))
   for i = 1:length(indexes)
     global indexes[i] = getIndexesForDeceptiveProblem(index, size, i)
@@ -17,14 +21,19 @@ function setupIndexes(index, size)
   return nothing
 end
 
+function destroy()
+    global isInitialized = false
+    global unexplored = 0
+    println("LON reset...")
+end
+
+
 function decodeAllOptima(codedOptima, problem_index, problem_size)
   indexes = setupIndexes(problem_index, problem_size)
 end
 
 function decodeOptimum( base_10_optimum::Int64, problem_size::Int64, problem_index::Int64)
-  try
-    length(Decoder.indexes)
-  catch
+  if !isInitialized
     setupIndexes(problem_index, problem_size)
   end
   k = getKforProblemIndex(problem_index)
