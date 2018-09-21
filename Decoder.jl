@@ -7,7 +7,11 @@ export setupIndexes, decodeOptimum, codeOptimum, initializeBlocks,
        evaluateBlock, getIndexesForDeceptiveProblem, getKforProblemIndex,
        getAllOptimaIndexes
 
-function setupIndexes(index, size)
+"""
+(index::Int64, size::Int64)::Void
+Sets global variable indexes for problem params
+"""
+function setupIndexes(index::Int64, size::Int64)::Void
   k = getKforProblemIndex( index )
 
   global indexes = Array{Array{Int64}}(Int(size / k))
@@ -17,11 +21,15 @@ function setupIndexes(index, size)
   return nothing
 end
 
-function decodeAllOptima(codedOptima, problem_index, problem_size)
-  indexes = setupIndexes(problem_index, problem_size)
-end
+# function decodeAllOptima(codedOptima::Int64, problem_index::Int64, problem_size::Int64)::Void
+#   indexes = setupIndexes(problem_index, problem_size)
+# end
 
-function decodeOptimum( base_10_optimum::Int64, problem_size::Int64, problem_index::Int64)
+"""
+(base_10_optimum::Int64, problem_size::Int64, problem_index::Int64)::Array{Bool}
+Returns full boolean representation given an optimum
+"""
+function decodeOptimum( base_10_optimum::Int64, problem_size::Int64, problem_index::Int64)::Array{Bool}
   try
     length(Decoder.indexes)
   catch
@@ -40,7 +48,11 @@ function decodeOptimum( base_10_optimum::Int64, problem_size::Int64, problem_ind
   return solution
 end
 
-function codeOptimum( optimum, problem_index )
+"""
+(optimum::Array{Bool}, problem_index::Int64 )::Int64
+Returns base10 representation of an optimum
+"""
+function codeOptimum( optimum::Array{Bool}, problem_index::Int64 )::Int64
   blocks = initializeBlocks( optimum, problem_index)
   stringCodification = ""
   for i = 1:length(blocks)
@@ -55,12 +67,18 @@ function codeOptimum( optimum, problem_index )
   return base10(stringCodification)
 end
 
-function initializeBlocks( parameters,  problem_index )::Array{Block}
+"""
+(parameters::Array{Bool},  problem_index::Int64 )::Array{Block}
+Given a full boolean solution it returns the blocks with fitness and indexes according to problem index
+"""
+function initializeBlocks( parameters::Array{Bool},  problem_index::Int64 )::Array{Block}
   if problem_index == 0
-    const blocks = Array{Block}(1)
-    blocks[1] = Block([i for i = 1:length(parameters)], sum(Float64, parameters))
-    return blocks
+    # const blocks = Array{Block}(1)
+    # blocks[1] = Block([i for i = 1:length(parameters)], sum(Float64, parameters))
+    # return blocks
+    return error("Problem 0 has been eliminated")
   end
+
   k = getKforProblemIndex(problem_index)
   number_of_blocks = Int(length(parameters) / k)
   const blocks = Array{Any}(number_of_blocks)
@@ -72,7 +90,11 @@ function initializeBlocks( parameters,  problem_index )::Array{Block}
   return blocks
 end
 
-function evaluateBlock(parameters, indexes, problem_index)::Float64
+"""
+(parameters::Array{Bool}, indexes::Int64, problem_index::Int64)::Float64
+Returns the fitness of a single block given parameters and problem index
+"""
+function evaluateBlock(parameters::Array{Bool}, indexes::Int64, problem_index::Int64)::Float64
   if problem_index == 0
     return sum(parameters)
   else
@@ -83,8 +105,15 @@ function evaluateBlock(parameters, indexes, problem_index)::Float64
   end
 end
 
-function getIndexesForDeceptiveProblem( problem_index, problem_size, i)
+"""
+( problem_index::Int64, problem_size::Int64, i::Int64)::Array{Int64}
+Returns an array of indexes representing the structure of the problem
+"""
+function getIndexesForDeceptiveProblem( problem_index::Int64, problem_size::Int64, i::Int64)::Array{Int64}
   k = getKforProblemIndex(problem_index)
+  if problem_index == 0
+      return error("Problem 0 has been eliminated")
+  end
   if problem_index == 1 || problem_index == 2
     return [(i-1)*k + j for j = 1:k  ]
   elseif problem_index == 3 || problem_index == 4
@@ -93,15 +122,26 @@ function getIndexesForDeceptiveProblem( problem_index, problem_size, i)
   end
 end
 
-function getKforProblemIndex( problem_index::Int64 )
+"""
+(problem_index::Int64 )::Int64
+Returns value of k according to problem index
+"""
+function getKforProblemIndex( problem_index::Int64 )::Int64
   return k = problem_index % 2 == 0 ? 5 : 4
 end
 
-
-function base10(strSolution::String)
+"""
+(strSolution::String)::Int64
+Returns a base 10 number given a binary string
+"""
+function base10(strSolution::String)::Int64
   return parse(Int,strSolution,2)
 end
 
+"""
+( problem_index::Int64, problem_size::Int64 )::UnitRange{Int64}
+Returns the optima's search space in form of range given problem parameters
+"""
 function getAllOptimaIndexes( problem_index::Int64, problem_size::Int64 )::UnitRange{Int64}
   if problem_index == 0
     return (2^problem_size - 1) < 0  ? error("problem too big") : (2^problem_size-1):(2^problem_size-1)

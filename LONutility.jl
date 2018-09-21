@@ -17,7 +17,11 @@ function destroy()
     return println("LON reset...")
 end
 
-function constructLON( problem_index, number_of_parameters )
+"""
+(problem_index::Int64, number_of_parameters::Int64)::Void
+Constructs an empty LON
+"""
+function constructLON( problem_index::Int64, number_of_parameters::Int64 )::Void
     if !isConstructed
         range = getAllOptimaIndexes(problem_index, number_of_parameters)
         nodes = range[end]
@@ -29,19 +33,27 @@ function constructLON( problem_index, number_of_parameters )
     else
         println("LON already constructed. Running LTGA will add edges to the existing LON...")
     end
+    return nothing
 end
 
-
-function placeEdges( best_prev_solution_indexes, best_solution_indexes)
+"""
+( best_prev_solution_indexes::Array{Int64}, best_solution_indexes::Array{Int64})::Void
+Sets edge from best prev to best sol to +1
+"""
+function placeEdges( best_prev_solution_indexes::Array{Int64}, best_solution_indexes::Array{Int64})::Void
     for from in best_prev_solution_indexes
         for  to in best_solution_indexes
             LON[ from , to ] += 1
         end
     end
-    # LON[best_prev_solution_indexes, best_solution_indexes] = -1
+    return nothing
 end
 
-function getUnexploredInitialPopulation(problem_index, population_size, number_of_parameters)
+"""
+(problem_index::Int64, population_size::Int64, number_of_parameters::Int64)::Array{Bool}
+Returns only unexplored initial population.. stores unexplored in global variable
+"""
+function getUnexploredInitialPopulation(problem_index::Int64, population_size::Int64, number_of_parameters::Int64)::Array{Bool}
     if unexplored == 0
         global unexplored = [i for i in getAllOptimaIndexes(problem_index, number_of_parameters)]
     end
