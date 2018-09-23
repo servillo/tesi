@@ -1,5 +1,7 @@
 __precompile__()
 
+# NOT NEEDED
+
 module LocalSearch
 using Classes
 using Decoder
