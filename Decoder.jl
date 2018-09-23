@@ -73,7 +73,7 @@ function codeOptimum( optimum::Array{Bool}, problem_index::Int64 )::Int64
     elseif blocks[i].fitness == 1.0
       stringCodification *= "1"
     else
-      return error("The solution is not a LocalOptimum")
+      return error("The solution is not a Local Optimum")
     end
   end
   return base10(stringCodification)
@@ -85,10 +85,10 @@ Given a full boolean solution it returns the blocks with fitness and indexes acc
 """
 function initializeBlocks( parameters::Array{Bool},  problem_index::Int64 )::Array{Block}
   if problem_index == 0
-    # const blocks = Array{Block}(1)
-    # blocks[1] = Block([i for i = 1:length(parameters)], sum(Float64, parameters))
-    # return blocks
-    return error("Problem 0 has been eliminated")
+    const blocks = Array{Block}(1)
+    blocks[1] = Block([i for i = 1:length(parameters)], sum(Float64, parameters))
+    return blocks
+    # return error("Problem 0 has been eliminated")
   end
 
   k = getKforProblemIndex(problem_index)
@@ -122,15 +122,17 @@ end
 Returns an array of indexes representing the structure of the problem
 """
 function getIndexesForDeceptiveProblem( problem_index::Int64, problem_size::Int64, i::Int64)::Array{Int64}
-  k = getKforProblemIndex(problem_index)
-  if problem_index == 0
-      return error("Problem 0 has been eliminated")
-  end
-  if problem_index == 1 || problem_index == 2
-    return [(i-1)*k + j for j = 1:k  ]
-  elseif problem_index == 3 || problem_index == 4
-    step = Int(problem_size / k)
-    return [i + j*step for j = 0:k-1]
+    k = getKforProblemIndex(problem_index)
+    if problem_index == 0
+        return error("Problem 0 has been eliminated")
+    end
+    if problem_index == 1
+        return [(i-1)*k + j for j = 1:k  ]
+    elseif problem_index == 2
+        step = Int(problem_size / k)
+        return [i + j*step for j = 0:k-1]
+    else
+    error("Problem $problem_index not implemented...")
   end
 end
 
@@ -139,7 +141,7 @@ end
 Returns value of k according to problem index
 """
 function getKforProblemIndex( problem_index::Int64 )::Int64
-  return k = problem_index % 2 == 0 ? 5 : 4
+  return problem_index == 1 ? 4 : 5
 end
 
 """
@@ -157,12 +159,12 @@ Returns the optima's search space in form of range given problem parameters
 function getAllOptimaIndexes( problem_index::Int64, problem_size::Int64 )::UnitRange{Int64}
   if problem_index == 0
     return (2^problem_size - 1) < 0  ? error("problem too big") : (2^problem_size-1):(2^problem_size-1)
-  elseif problem_index < 5
+  elseif problem_index < 3
     k = getKforProblemIndex(problem_index)
     number_of_optima = 2^(Int(problem_size / k))
     return 0:number_of_optima-1
-  elseif problem_index >= 5
-    return error("not implemented yet for problem ", problem_index)
+  elseif problem_index >= 3
+    return error("Not implemented yet for problem ", problem_index)
   end
 end
 

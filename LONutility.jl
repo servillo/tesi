@@ -30,8 +30,10 @@ function constructLON( problem_index::Int64, number_of_parameters::Int64 )::Void
         global isConstructed = true
         global prb_idx = problem_index
         global prb_size = number_of_parameters
-    else
+    elseif prb_idx == problem_index && prb_size == number_of_parameters
         println("LON already constructed. Running LTGA will add edges to the existing LON...")
+    else
+        error("LON was alredy constructed with different parameters")
     end
     return nothing
 end

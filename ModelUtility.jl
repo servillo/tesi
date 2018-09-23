@@ -17,21 +17,17 @@ function generateModelForTypeAndProblemIndex(modelType::String, index::Int64, nP
             if index == 1
                 return LTmodelForDeceptive4Tight(nParams)
             elseif index == 2
-                return LTmodelForDeceptive5Tight(nParams)
-            elseif index == 3
                 return LTmodelForDeceptive4Loose(nParams)
-            elseif index == 4
-                return LTmodelForDeceptive5Loose(nParams)
+            else
+                error("Problem $index not implemented...")
             end
         elseif modelType == "mp"
             if index == 1
                 return MPmodelForDeceptive4Tight(nParams)
             elseif index == 2
-                return MPmodelForDeceptive5Tight(nParams)
-            elseif index == 3
                 return MPmodelForDeceptive4Loose(nParams)
-            elseif index == 4
-                return MPmodelForDeceptive5Loose(nParams)
+            else
+                error("Problem $index not implemented...")
             end
         end
     end
@@ -60,27 +56,12 @@ end
 
 """
 (nparams::Int64)::Array{Array{Int64}}
-returns a Marginal Product model for deceptive thight with k = 4
-"""
-function MPmodelForDeceptive5Tight(nparams::Int64)
-    return MPmodelForDeceptiveKTight(nparams, 5)
-end
-
-"""
-(nparams::Int64)::Array{Array{Int64}}
 returns a Marginal Product model for deceptive Loose with k = 4
 """
 function MPmodelForDeceptive4Loose(nparams::Int64)
     return MPmodelForDeceptiveKLoose(nparams, 4)
 end
 
-"""
-(nparams::Int64)::Array{Array{Int64}}
-returns a Marginal Product model for deceptive Loose with k = 4
-"""
-function MPmodelForDeceptive5Loose(nparams::Int64)
-    return MPmodelForDeceptiveKLoose(nparams, 5)
-end
 """
 (nparams::Int64)::Array{Array{Int64}}
 returns a Marginal Product model for deceptive thight for any k
@@ -119,26 +100,10 @@ end
 
 """
 (nparams::Int64)::Array{Array{Int64}}
-returns LT model for deceptive tight with k = 5
-"""
-function LTmodelForDeceptive5Tight(nparams::Int64)::Array{Array{Int64}}
-    return LTmodelForDeceptiveKTight(nparams, 5)
-end
-
-"""
-(nparams::Int64)::Array{Array{Int64}}
 returns LT model for deceptive loose with k = 4
 """
 function LTmodelForDeceptive4Loose(nparams::Int64)::Array{Array{Int64}}
     return LTmodelForDeceptiveKLoose(nparams, 4)
-end
-
-"""
-(nparams::Int64)::Array{Array{Int64}}
-returns LT model for deceptive loose with k = 5
-"""
-function LTmodelForDeceptive5Loose(nparams::Int64)::Array{Array{Int64}}
-    return LTmodelForDeceptiveKLoose(nparams, 5)
 end
 
 """

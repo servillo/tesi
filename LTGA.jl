@@ -157,11 +157,9 @@ function switchProblemEvaluation( index::Int64 )::Function
   elseif index == 1
     return deceptiveTrap4TightEncodingFunctionProblemEvaluation
   elseif index == 2
-    return deceptiveTrap5TightEncodingFunctionProblemEvaluation
-  elseif index == 3
     return deceptiveTrap4LooseEncodingFunctionProblemEvaluation
-  elseif index == 4
-    return deceptiveTrap5LooseEncodingFunctionProblemEvaluation
+  else
+      error("Problem $index not implemented...")
   end
 end
 
@@ -183,12 +181,6 @@ function deceptiveTrap4TightEncodingFunctionProblemEvaluation( parameters::Array
   return deceptiveTrapKTightEncodingFunctionProblemEvaluation( parameters, 4)
 end
 
-"""
-( parameters::Array{Bool} )::Tuple{Float64, Float64}
-"""
-function deceptiveTrap5TightEncodingFunctionProblemEvaluation( parameters::Array{Bool})::Tuple{Float64,Float64}
-  return deceptiveTrapKTightEncodingFunctionProblemEvaluation( parameters, 5)
-end
 
 """
 ( parameters::Array{Bool} )::Tuple{Float64, Float64}
@@ -197,12 +189,6 @@ function deceptiveTrap4LooseEncodingFunctionProblemEvaluation( parameters::Array
   return deceptiveTrapKLooseEncodingFunctionProblemEvaluation( parameters, 4)
 end
 
-"""
-( parameters::Array{Bool} )::Tuple{Float64, Float64}
-"""
-function deceptiveTrap5LooseEncodingFunctionProblemEvaluation( parameters::Array{Bool})::Tuple{Float64,Float64}
-  return deceptiveTrapKLooseEncodingFunctionProblemEvaluation( parameters, 5)
-end
 
 """
 ( parameters::Array{Bool} )::Tuple{Float64, Float64}
