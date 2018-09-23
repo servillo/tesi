@@ -15,19 +15,23 @@ indexes = 0
 Sets global variable indexes for problem params
 """
 function setupIndexes(index::Int64, size::Int64)::Void
-  global isInitialized = true
-  k = getKforProblemIndex( index )
-  global indexes = Array{Array{Int64}}(Int(size / k))
-  for i = 1:length(indexes)
-    global indexes[i] = getIndexesForDeceptiveProblem(index, size, i)
-  end
+    if !isInitialized
+      global isInitialized = true
+      k = getKforProblemIndex( index )
+      global indexes = Array{Array{Int64}}(Int(size / k))
+      for i = 1:length(indexes)
+        global indexes[i] = getIndexesForDeceptiveProblem(index, size, i)
+      end
+    else
+        println("Decoder already initialized. Call Decoder.destroy()")
+    end
   return nothing
 end
 
 function destroy()
     global isInitialized = false
     global unexplored = 0
-    println("LON reset...")
+    println("Decoder reset...")
 end
 
 
@@ -102,7 +106,7 @@ end
 (parameters::Array{Bool}, indexes::Int64, problem_index::Int64)::Float64
 Returns the fitness of a single block given parameters and problem index
 """
-function evaluateBlock(parameters::Array{Bool}, indexes::Int64, problem_index::Int64)::Float64
+function evaluateBlock(parameters::Array{Bool}, indexes::Array{Int64}, problem_index::Int64)::Float64
   if problem_index == 0
     return sum(parameters)
   else

@@ -88,10 +88,11 @@ function resetGA()
 
     # uninitialize Decoder
     Decoder.destroy()
-    
+
     freePointers()
 
     global is_inited                       = false
+    println("LTGA reset...")
     return nothing
 end
 
@@ -609,7 +610,7 @@ function runGA(  problem_index::Int64,
                 maximum_number_of_evaluations::Int64,
                 vtr::Float64,
                 fitness_variance_tolerance::Float64
-                )
+                )::Array{Float64}
 
             # set LTGA globals
             setGlobals(problem_index, number_of_parameters, population_size, modelType)
@@ -684,7 +685,7 @@ function runGA(  problem_index::Int64,
 
                 global number_of_generations += 1
             end
-
+            return objective_values
         end
 
 end
