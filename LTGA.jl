@@ -597,7 +597,7 @@ function runGA(  problem_index::Int64,
                 maximum_number_of_evaluations::Int64,
                 vtr::Float64,
                 fitness_variance_tolerance::Float64
-                )::Array{Float64}
+                )::Tuple{Array{Float64},Bool,Float64}
 
             # set LTGA globals
             setGlobals(problem_index, number_of_parameters, population_size, modelType)
@@ -635,6 +635,8 @@ function runGA(  problem_index::Int64,
             # update best solution
             updateBestPrevGenSolution(population, objective_values, constraint_values)
 
+            # saves average solution fitness
+            averageFitness = []
 
             newBestSolsCoded, prev_best_fitness = trackBestMultipleSolutionsInPopulation(population, objective_values, constraint_values, problem_index)
 
@@ -670,9 +672,15 @@ function runGA(  problem_index::Int64,
 
                 updateBestPrevGenSolution( population, objective_values, constraint_values)
 
+                append!(averageFitness, objective_values)
                 global number_of_generations += 1
             end
-            return objective_values
+            success = false
+            if (maximum(objective_values) == vtr)
+                success = true
+            end
+            append!(averageFitness, objective_values)
+            return objective_values, success, mean(averageFitness)
         end
 
 end
