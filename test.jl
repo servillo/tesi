@@ -74,12 +74,70 @@ function simpleLON(LON)
     return G
 end
 
+function createFitnessRowVector(idx, N)
+    blocksize = idx == 1 ? 4 : 5
+    nOptimas = 2 ^ Int(N / blocksize)
+    F = Array{Float64}(1,nOptimas)
+    for i = 0:nOptimas-1
+        optFitness, dummy = installedProblemEvaluation( idx, Decoder.decodeOptimum(i, N, idx))
+        F[1,i+1] = optFitness
+    end
+    return F
+end
+
+function computeR2coefficients(arr1, arr2)
+    data = DataFrame(X = arr1, Y = arr2)
+    ols = lm(@formula(X ~ Y), data)
+    return r2(ols)
+end
+
 function removeIslands(LON)
 
 end
-runs, fit = exploreLandscape(1, 40, 2)
 
+i = 1
+p = 10
+N = 40
 
+function runExperiment(idx, N, p, t)
+    # create fitness vector F containing fitnesses of all local optima
+    F = createFitnessRowVector(idx, N)
+
+    Avg_f = Array{Float64}(t)
+    Exp_f = Array{Float64}(t)
+    P_opt = Array{Float64}(t)
+    p_s = Array{Float64}(t)
+    # run GA t times
+    for i = 1:t
+        runs, successes, mean_f = exploreLandscape(idx)
+        # gather t pagerank vectors P and t percentages success p_s
+        G = simpleLON(LONutility.LON)
+        P = pagerank(G, 1.0, 1000) .* 100
+        P_opt[i] = P[end]
+        p_s[i] = successes / runs
+        # println("opt ", P_opt[i], " sr ", p_s[i])
+        # gather t average solution fitness achieved Avg_f
+        Avg_f[i] = mean_f
+        # multiply each pagerank vector P by the fitness vector F to obtain Exp_f vector of size t
+        Exp_f[i] = (F * P)[1]
+        # println("e ", Exp_f[i], " a ", Avg_f[i])
+    end
+
+    # At this point there are vectors of size t p_s[], Exp_f[] and Avg_f[]
+    # compute R2 coefficient for p_s and P_opt
+    # compute R2 coefficient for Exp_f and Avg_f
+    return computeR2coefficients(P_opt, p_s), computeR2coefficients(Avg_f, Exp_f)
+end
+
+runExperiment(1, 40, 50, 50)
+
+x = rand(Float64,100)
+f = Float64[]
+
+append!(f,x)
+
+runs, successes, fit = exploreLandscape(1)
+@time exploreLandscape(1)
 
 deleteat!(Pmin, find( x -> x < 1, Pmin))
 sum(LONutility.LON)
