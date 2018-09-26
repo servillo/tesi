@@ -14,7 +14,7 @@ unexplored = 0
 function destroy()
     global isConstructed = false
     global unexplored = 0
-    println("LON reset...")
+    # println("LON reset...")
 end
 
 """
@@ -31,7 +31,7 @@ function constructLON( problem_index::Int64, number_of_parameters::Int64 )::Void
         global prb_idx = problem_index
         global prb_size = number_of_parameters
     elseif prb_idx == problem_index && prb_size == number_of_parameters
-        println("LON already constructed. Running LTGA will add edges to the existing LON...")
+        # println("LON already constructed. Running LTGA will add edges to the existing LON...")
     else
         error("LON was alredy constructed with different parameters")
     end

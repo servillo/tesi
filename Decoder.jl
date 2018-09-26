@@ -23,7 +23,7 @@ function setupIndexes(index::Int64, size::Int64)::Void
         global indexes[i] = getIndexesForDeceptiveProblem(index, size, i)
       end
     else
-        println("Decoder already initialized. Call Decoder.destroy()")
+        error("Decoder already initialized. Call Decoder.destroy()")
     end
   return nothing
 end
@@ -31,7 +31,7 @@ end
 function destroy()
     global isInitialized = false
     global unexplored = 0
-    println("Decoder reset...")
+    # println("Decoder reset...")
 end
 
 

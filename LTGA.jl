@@ -18,15 +18,15 @@ To call only once when setting up the problem
 function setGlobals(index::Int64, nParams::Int64, popSize::Int64, modelType::String)::Void
     if is_inited
         if index != problem_index || nParams != number_of_parameters || popSize != population_size #|| modelType != model_type
-            println("LTGA reset...")
+            # println("LTGA reset...")
             resetGA()
     end
     end
-    println("LTGA initialized with parameters:\n",
-    "model type:            ", modelType, "\n",
-    "problem_index:         ", index, "\n",
-    "number of parameters:  ", nParams, "\n",
-    "population size:       ", popSize)
+    # println("LTGA initialized with parameters:\n",
+    # "model type:            ", modelType, "\n",
+    # "problem_index:         ", index, "\n",
+    # "number of parameters:  ", nParams, "\n",
+    # "population size:       ", popSize)
 
     global problem_index             = index
     global population_size           = popSize
@@ -92,7 +92,7 @@ function resetGA()
     freePointers()
 
     global is_inited                       = false
-    println("LTGA reset...")
+    # println("LTGA reset...")
     return nothing
 end
 
@@ -560,19 +560,19 @@ returns true if eval > max; bestobj >= value to reach; fitness var <= tol
 """
 function checkTerminationCondition(max::Int64, vtr::Float64, tol::Float64, objective_values::Array{Float64})::Bool
     if number_of_evaluations >= max
-        println("max eval")
+        # println("max eval")
         return true
     end
     if vtr > zero(vtr)
         if best_prevgen_objective_value >= vtr
-            println("vtr hit :", best_prevgen_objective_value)
+            # println("vtr hit :", best_prevgen_objective_value)
             return true
         end
     end
     const variance = var(objective_values, corrected = false)
     tol < 0.0001 ? tol = 0.0001 : nothing   # necessary because sometimes variance is computed as almost zero
     if variance <= tol
-        println("variance: ", variance, ". Best fitness: ", best_prevgen_objective_value)
+        # println("variance: ", variance, ". Best fitness: ", best_prevgen_objective_value)
         return true
     end
     return false
