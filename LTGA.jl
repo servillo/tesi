@@ -6,7 +6,7 @@ using ModelUtility
 using Decoder
 using LocalSearch
 using LONutility
-export runGA, resetGA, setGlobals
+export runGA, resetGA, setGlobals, installedProblemEvaluation
 
 ############## Globals Section
 is_inited                       = false
@@ -132,8 +132,9 @@ computes fitness evaluation according to problem index
 returns obj, con
 """
 function installedProblemEvaluation( index::Int64, parameters::Array{Bool} )::Tuple{Float64, Float64}
-  global number_of_evaluations += 1
-
+    if is_inited
+        global number_of_evaluations += 1
+    end
   # objective_value, constraint_value = 0.0, 0.0
 
   fitnessEvaluation = switchProblemEvaluation( index )
