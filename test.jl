@@ -17,8 +17,8 @@ function exploreLandscape(problem_index::Int64, number_of_parameters::Int64, pop
     runs = 0
     successes = 0
     while length(LONutility.unexplored) > 0
-        obj, isSuccessful, m_f = runGA(1, number_of_parameters, population_size, "mp", 100000, vtr, 0.0)
-        push!(meanFit, m_f)
+        obj, isSuccessful = runGA(1, number_of_parameters, population_size, "mp", 100000, vtr, 0.0)
+        append!(meanFit, obj)
         successes += isSuccessful ? 1 : 0
         runs += 1
     end

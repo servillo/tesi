@@ -597,7 +597,7 @@ function runGA(  problem_index::Int64,
                 maximum_number_of_evaluations::Int64,
                 vtr::Float64,
                 fitness_variance_tolerance::Float64
-                )::Tuple{Array{Float64},Bool,Float64}
+                )::Tuple{Array{Float64},Bool}
 
             # set LTGA globals
             setGlobals(problem_index, number_of_parameters, population_size, modelType)
@@ -625,9 +625,7 @@ function runGA(  problem_index::Int64,
 
             # evaluate initial population
             initializeFitnessValues(population, objective_values, constraint_values)
-            # saves average solution fitness
-            averageFitness = []
-            append!(averageFitness, objective_values)
+
             # generate a fixed model
             const model = generateModelForTypeAndProblemIndex(modelType, problem_index, number_of_parameters)
             const model_length = length(model)
@@ -672,14 +670,13 @@ function runGA(  problem_index::Int64,
 
                 updateBestPrevGenSolution( population, objective_values, constraint_values)
 
-                append!(averageFitness, objective_values)
                 global number_of_generations += 1
             end
             success = false
             if (maximum(objective_values) == vtr)
                 success = true
             end
-            return objective_values, success, mean(averageFitness)
+            return objective_values, success
         end
 
 end
