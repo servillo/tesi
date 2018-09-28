@@ -514,7 +514,6 @@ function trackBestMultipleSolutionsInPopulation(population::Array{Bool}, objecti
         end
     end
     n_best = length(indices)
-    # TODO Fix for loop -> useless. Just return the number of optima and 1 encoded
     codedBestSolutions = Array{Int64}(n_best)
     for i = 1:n_best
         codedBestSolutions[i] = codeOptimum( population[indices[i],:], problem_index )
