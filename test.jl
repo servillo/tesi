@@ -1,15 +1,9 @@
 include("includes.jl")
 
-using Gallium
 using LTGA
-
-using LightGraphs
-using Graphs
-using SimpleWeightedGraphs
-
-using Gadfly # export plot to browser
-using Compose
-using GraphPlot
+using LightGraphs, Graphs, SimpleWeightedGraphs
+using DataFrames, GLM
+# using Gadfly, Compose, GraphPlot
 
 function exploreLandscape(problem_index::Int64)
     problem_index == 1 ? number_of_parameters = 40 : number_of_parameters = 50
@@ -19,15 +13,17 @@ end
 function exploreLandscape(problem_index::Int64, number_of_parameters::Int64, population_size::Int64)
     LONutility.constructLON(problem_index, number_of_parameters)
     vtr = number_of_parameters / 4
+    meanFit = Float64[]
     runs = 0
-    fitness_achieved = []
+    successes = 0
     while length(LONutility.unexplored) > 0
-        obj = runGA(1, number_of_parameters, population_size, "mp", 100000, vtr, 0.0)
-        push!(fitness_achieved, maximum(obj))
+        obj, isSuccessful, m_f = runGA(1, number_of_parameters, population_size, "mp", 100000, vtr, 0.0)
+        push!(meanFit, m_f)
+        successes += isSuccessful ? 1 : 0
         runs += 1
     end
     resetGA()
-    return (runs,fitness_achieved)
+    return (runs, sum(successes), mean(meanFit))
 end
 
 
