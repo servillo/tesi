@@ -1,13 +1,13 @@
 include("includes.jl")
 
 using LTGA
-using LightGraphs, Graphs, SimpleWeightedGraphs
+using MetaGraphs, LightGraphs
 using DataFrames, GLM
 # using Gadfly, Compose, GraphPlot
 
 function exploreLandscape(problem_index::Int64)
     problem_index == 1 ? number_of_parameters = 40 : number_of_parameters = 50
-    return exploreLandscape(problem_index, number_of_parameters, 50)
+    return exploreLandscape(problem_index, number_of_parameters, 10)
 end
 
 function exploreLandscape(problem_index::Int64, number_of_parameters::Int64, population_size::Int64)
@@ -27,49 +27,6 @@ function exploreLandscape(problem_index::Int64, number_of_parameters::Int64, pop
 end
 
 
-function getEdges(LON)
-    dims, dummy = size(LON)
-    str = ""
-    for from = 1:dims
-        for to = 1:dims
-            if LON[from, to] > 0
-                str *= "edges from $(string(from)) to $(string(to)) : $(string(LON[from, to])) \n"
-            end
-        end
-    end
-    return str
-end
-
-function weightedLON(LON)
-    rows,cols = size(LON)
-    G = SimpleWeightedDiGraph(rows)
-    for i = 1:rows
-        weight = 1
-        if (weight > 1)
-            weight = 0
-        end
-        for j = 1:cols
-            if LON[i,j] != 0
-                SimpleWeightedGraphs.add_edge!(G, i, j, LON[i,j] * weight)
-            end
-        end
-    end
-    return G
-end
-
-function simpleLON(LON)
-    rows,cols = size(LON)
-    G = SimpleDiGraph(rows)
-    for i = 1:rows
-        for j = 1:cols
-            if LON[i,j] != 0
-                LightGraphs.add_edge!(G, i, j)
-            end
-        end
-    end
-    return G
-end
-
 function createFitnessRowVector(idx, N)
     blocksize = idx == 1 ? 4 : 5
     nOptimas = 2 ^ Int(N / blocksize)
@@ -87,8 +44,18 @@ function computeR2coefficients(arr1, arr2)
     return r2(ols)
 end
 
-function removeIslands(LON)
+function multiplyFitnessByPageRank(G,F,P)
+    optimum = parse(get_prop(G, 1, :optimum))
+    Ftmp = hcat(F[optimum])
+    for i = 2:length(P)
+        optimum = parse(get_prop(G, i, :optimum))
+        Ftmp = hcat(Ftmp, F[optimum])
+    end
+    return (Ftmp * P)[1]
+end
 
+function getIndexOfOptimum(G, opt::String)
+    return LONutility.findInGraph(G, opt)
 end
 
 i = 1
@@ -96,6 +63,7 @@ p = 10
 N = 40
 
 function runExperiment(idx, N, p, t)
+    const global_optimum = "$((2^Int(N/4))-1)"
     # create fitness vector F containing fitnesses of all local optima
     F = createFitnessRowVector(idx, N)
 
@@ -105,27 +73,41 @@ function runExperiment(idx, N, p, t)
     p_s = Array{Float64}(t)
     # run GA t times
     for i = 1:t
-        runs, successes, mean_f = exploreLandscape(idx)
+        start = time()
+        runs, successes, mean_f = exploreLandscape(idx, N, p)
         # gather t pagerank vectors P and t percentages success p_s
-        G = simpleLON(LONutility.LON)
-        P = pagerank(G, 1.0, 1000) .* 100
-        P_opt[i] = P[end]
+        G = LONutility.LON
+        P = pagerank(G, 1.0, 10000)
+        opt_index = getIndexOfOptimum(G, global_optimum)
+        if opt_index < 0
+            error("Global optima was not explored by LTGA")
+        end
+        P_opt[i] = P[opt_index]
         p_s[i] = successes / runs
-        # println("opt ", P_opt[i], " sr ", p_s[i])
         # gather t average solution fitness achieved Avg_f
         Avg_f[i] = mean_f
         # multiply each pagerank vector P by the fitness vector F to obtain Exp_f vector of size t
-        Exp_f[i] = (F * P)[1]
-        # println("e ", Exp_f[i], " a ", Avg_f[i])
+        # Exp_f[i] = (F * P)[1]
+        Exp_f[i] = multiplyFitnessByPageRank(G, F, P)
+        finish = time()
+        println("Run $i completed in $(finish - start) seconds")
+        println("Exp Fitness : $(Exp_f[i]), Avg fitness : ", Avg_f[i])
+        println("P_opt       : $(P_opt[i]), Success %   : ", p_s[i])
     end
 
     # At this point there are vectors of size t p_s[], Exp_f[] and Avg_f[]
     # compute R2 coefficient for p_s and P_opt
     # compute R2 coefficient for Exp_f and Avg_f
+    if (p_s == ones(t))
+        p_s[1] -= 0.01
+    end
     return computeR2coefficients(P_opt, p_s), computeR2coefficients(Avg_f, Exp_f)
 end
+i = 1
+p = 10
+N = 40
 
-runExperiment(1, 40, 50, 50)
+runExperiment(i, N, p, 100)
 
 x = rand(Float64,100)
 f = Float64[]

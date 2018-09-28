@@ -625,18 +625,18 @@ function runGA(  problem_index::Int64,
 
             # evaluate initial population
             initializeFitnessValues(population, objective_values, constraint_values)
-
+            # saves average solution fitness
+            averageFitness = []
+            append!(averageFitness, objective_values)
             # generate a fixed model
             const model = generateModelForTypeAndProblemIndex(modelType, problem_index, number_of_parameters)
-
             const model_length = length(model)
 
             setPointers(population, offspring, objective_values, constraint_values, objective_values_offspring, constraint_values_offspring, model, model_length)
             # update best solution
             updateBestPrevGenSolution(population, objective_values, constraint_values)
 
-            # saves average solution fitness
-            averageFitness = []
+
 
             newBestSolsCoded, prev_best_fitness = trackBestMultipleSolutionsInPopulation(population, objective_values, constraint_values, problem_index)
 
@@ -679,7 +679,6 @@ function runGA(  problem_index::Int64,
             if (maximum(objective_values) == vtr)
                 success = true
             end
-            append!(averageFitness, objective_values)
             return objective_values, success, mean(averageFitness)
         end
 
