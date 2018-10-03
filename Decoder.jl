@@ -141,7 +141,7 @@ end
 Returns value of k according to problem index
 """
 function getKforProblemIndex( problem_index::Int64 )::Int64
-  return problem_index == 1 ? 4 : 5
+  return 4
 end
 
 """
