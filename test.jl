@@ -26,7 +26,6 @@ function exploreLandscape(problem_index::Int64, number_of_parameters::Int64, pop
     return (runs, sum(successes), mean(meanFit))
 end
 
-
 function createFitnessRowVector(idx, N)
     blocksize = idx == 1 ? 4 : 5
     nOptimas = 2 ^ Int(N / blocksize)
@@ -57,10 +56,6 @@ end
 function getIndexOfOptimum(G, opt::String)
     return LONutility.findInGraph(G, opt)
 end
-
-i = 1
-p = 10
-N = 40
 
 function runExperiment(idx, N, p, t)
     const global_optimum = "$((2^Int(N/4))-1)"
@@ -98,10 +93,31 @@ function runExperiment(idx, N, p, t)
     # At this point there are vectors of size t p_s[], Exp_f[] and Avg_f[]
     # compute R2 coefficient for p_s and P_opt
     # compute R2 coefficient for Exp_f and Avg_f
-    if (p_s == ones(t))
-        p_s[1] -= 0.01
-    end
-    return computeR2coefficients(P_opt, p_s), computeR2coefficients(Avg_f, Exp_f)
+    # if (p_s == ones(t))
+    #     p_s[1] -= 0.01
+    # end
+    return (P_opt, p_s, Exp_f, Avg_f)
+    # return computeR2coefficients(P_opt, p_s), computeR2coefficients(Avg_f, Exp_f)
+end
+
+
+N = 40
+
+pop = [8, 16, 28, 40]
+nvar = [28, 40]
+
+a,b,c,d = runExperiment(1, 20, 10, 10)
+P = append!(Float64[],a)
+ps = append!(Float64[],b)
+E = append!(Float64[],c)
+Avg = append!(Float64[],d)
+
+for N in nvar
+    a, b, c, d = runExperiment(1, N, 10, 10)
+    P = append!(P,a)
+    ps = append!(ps,b)
+    E = append!(E,c)
+    Avg = append!(Avg,d)
 end
 i = 1
 p = 10
