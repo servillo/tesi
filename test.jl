@@ -166,5 +166,31 @@ function asd(m)
 end
 
 
-deleteat!(Pmin, find( x -> x < 1, Pmin))
-deleteat!(Pm, find( x -> x < 1, Pm))
+function constructTree(num)
+    tree = [[i] for i = 1:num]
+    for i = 1:2:num
+        push!(tree, [i + j for j = 0:1])
+    end
+    filled = 0
+    for i = 1:4:num
+        push!(tree, [i + j for j = 0:3])
+        filled += 1
+    end
+    it = 0
+    while length(tree[end]) < num
+        filled = length(tree)
+        blocks = round(Int64, num / (4*(2^it)), RoundDown)
+        for i = filled+1-blocks:2:filled
+            if i != filled
+                push!(tree, vcat(tree[i], tree[i + 1]))
+            end
+        end
+        it += 1
+        if maximum(tree[end]) != num && length(tree[end]) < 4*(2^it)
+            push!(tree, [ i for i = 1:num])
+        end
+    end
+    return tree
+end
+
+constructTree(40)
