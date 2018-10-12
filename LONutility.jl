@@ -68,7 +68,7 @@ function placeEdges( best_prev_solution_indexes::Array{Int64}, best_solution_ind
                 j = vertices(LON)[end]
                 set_prop!(LON, j, :optimum, "$to")
             end
-            if !add_edge!(LON, i, j)
+            if i != j && !add_edge!(LON, i, j)
                 # println("EDGE ALREADY EXISTS!!!")
             end
         end
