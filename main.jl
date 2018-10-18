@@ -17,9 +17,10 @@ function exploreLandscape(problem_index::Int64, number_of_parameters::Int64, pop
     runs = 0
     successes = 0
     while length(LONutility.unexplored) > 0
-        obj, isSuccessful = runGA(problem_index, number_of_parameters, population_size, "mp", 100000, vtr, 0.0)
+        obj, isSuccessful = runGA(problem_index, number_of_parameters, population_size, "lt", 100000, vtr, 0.0)
         append!(meanFit, obj)
         successes += isSuccessful ? 1 : 0
+        println("Run $runs completed. Best obj, : $(maximum(obj))")
         runs += 1
     end
     resetGA()
@@ -142,3 +143,31 @@ computeR2coefficients(P, ps)
 
 dummy, dummy2, E, Avg = runWithFixedPop(40)
 computeR2coefficients( E, Avg)
+
+
+function assessLTGAperformance(sizes::Array{Int64}, populations::Array{Int64})
+    cd("C:\\Users\\Paolo\\Desktop\\tesi\\JULIA-LTGA")
+    for size in sizes
+        mkdir("$(pwd())\\$size vars")
+        cd("$size vars")
+        vtr = size / 4
+        for pop in populations
+            mkdir("$(pwd())\\population - $pop")
+            cd("population - $pop")
+            for i = 1:50
+                obj, isSuccessful = runGA(1, size, pop, "lt", 100000, vtr, 0.0, i)
+                resetGA()
+                gc()
+            end
+            cd("..")
+        end
+        cd("..")
+    end
+end
+
+sizes = [28,32,36,40]
+populations = [4,8,12,20,40]
+assessLTGAperformance(sizes, populations)
+
+
+exploreLandscape(1, 60, 10)

@@ -578,6 +578,33 @@ function checkTerminationCondition(max::Int64, vtr::Float64, tol::Float64, objec
     return false
 end
 
+
+
+"""
+(max::Int64, vtr::Float64, tol::Float64, objective_values::Array{Float64})::Bool
+returns true if eval > max; bestobj >= value to reach; fitness var <= tol
+"""
+function checkTerminationCondition(max::Int64, vtr::Float64, tol::Float64, objective_values::Array{Float64}, runNumber, timeStart)::Bool
+    if number_of_evaluations >= max
+        # println("max eval")
+        return true
+    end
+    if vtr > zero(vtr)
+        if best_prevgen_objective_value >= vtr
+            # println("vtr hit :", best_prevgen_objective_value)
+            filename = "run-$(runNumber)_vtr_hitting_time.dat"
+            writeRunningTime( filename, timeStart)
+            return true
+        end
+    end
+    const variance = var(objective_values, corrected = false)
+    tol < 0.0001 ? tol = 0.0001 : nothing   # necessary because sometimes variance is computed as almost zero
+    if variance <= tol
+        # println("variance: ", variance, ". Best fitness: ", best_prevgen_objective_value)
+        return true
+    end
+    return false
+end
 ########### Section Main
 
 """
@@ -598,84 +625,269 @@ function runGA(  problem_index::Int64,
                 fitness_variance_tolerance::Float64
                 )::Tuple{Array{Float64},Bool}
 
-            # set LTGA globals
-            setGlobals(problem_index, number_of_parameters, population_size, modelType)
-  ############## Options Section
-            const write_generational_statistics = true
-            const write_generational_solutions  = true
-            const print_verbose_overview        = true
-            const print_lt_contents             = true
-   ############# Run
-            const offspring = Array{Bool}(population_size, number_of_parameters)
-            const objective_values = Array{Float64}(population_size)
-            const constraint_values = Array{Float64}(population_size)
-            const objective_values_offspring = Array{Float64}(population_size)
-            const constraint_values_offspring = Array{Float64}(population_size)
+        # set LTGA globals
+        setGlobals(problem_index, number_of_parameters, population_size, modelType)
+
+        ############# Run
+        const offspring = Array{Bool}(population_size, number_of_parameters)
+        const objective_values = Array{Float64}(population_size)
+        const constraint_values = Array{Float64}(population_size)
+        const objective_values_offspring = Array{Float64}(population_size)
+        const constraint_values_offspring = Array{Float64}(population_size)
 
 
-            # const population = randomPopulation(population_size, number_of_parameters)
-            const population = getUnexploredInitialPopulation(problem_index, population_size, number_of_parameters)
+        # const population = randomPopulation(population_size, number_of_parameters)
+        const population = getUnexploredInitialPopulation(problem_index, population_size, number_of_parameters)
 
-            # Local Search population
-            # LocalSearchPopulation!( population, problem_index)
+        # Local Search population
+        # LocalSearchPopulation!( population, problem_index)
 
-            # initilize LON
-            constructLON(problem_index, number_of_parameters)
+        # initilize LON
+        constructLON(problem_index, number_of_parameters)
 
-            # evaluate initial population
-            initializeFitnessValues(population, objective_values, constraint_values)
+        # evaluate initial population
+        initializeFitnessValues(population, objective_values, constraint_values)
 
-            # generate a fixed model
-            const model = generateModelForTypeAndProblemIndex(modelType, problem_index, number_of_parameters)
-            const model_length = length(model)
+        # generate a fixed model
+        const model = generateModelForTypeAndProblemIndex(modelType, problem_index, number_of_parameters)
+        const model_length = length(model)
 
-            setPointers(population, offspring, objective_values, constraint_values, objective_values_offspring, constraint_values_offspring, model, model_length)
-            # update best solution
-            updateBestPrevGenSolution(population, objective_values, constraint_values)
+        setPointers(population, offspring, objective_values, constraint_values, objective_values_offspring, constraint_values_offspring, model, model_length)
+        # update best solution
+        updateBestPrevGenSolution(population, objective_values, constraint_values)
 
 
 
-            newBestSolsCoded, prev_best_fitness = trackBestMultipleSolutionsInPopulation(population, objective_values, constraint_values, problem_index)
+        newBestSolsCoded, prev_best_fitness = trackBestMultipleSolutionsInPopulation(population, objective_values, constraint_values, problem_index)
+
+        while !checkTerminationCondition(maximum_number_of_evaluations, vtr, fitness_variance_tolerance, objective_values)
+            # update best solutions in generation
+            bestSolsCoded = copy(newBestSolsCoded)
+
+            generateAndEvaluateNewSolutionsToFillOffspring!( population,
+                                                            offspring,
+                                                            objective_values,
+                                                            constraint_values,
+                                                            objective_values_offspring,
+                                                            constraint_values_offspring,
+                                                            model,
+                                                            model_length)
+
+
+
+            selectFinalSurvivors!( population,
+                                  offspring,
+                                  objective_values,
+                                  constraint_values,
+                                  objective_values_offspring,
+                                  constraint_values_offspring)
 
             global number_of_generations += 1
-            while !checkTerminationCondition(maximum_number_of_evaluations, vtr, fitness_variance_tolerance, objective_values)
-                # update best solutions in generation
-                bestSolsCoded = copy(newBestSolsCoded)
+            # update best solutions in generation
+            newBestSolsCoded, best_fitness = trackBestMultipleSolutionsInPopulation(population, prev_best_fitness, objective_values, constraint_values, problem_index)
+            prev_best_fitness = best_fitness
 
-                generateAndEvaluateNewSolutionsToFillOffspring!( population,
-                                                                offspring,
-                                                                objective_values,
-                                                                constraint_values,
-                                                                objective_values_offspring,
-                                                                constraint_values_offspring,
-                                                                model,
-                                                                model_length)
+            # place edges
+            placeEdges( bestSolsCoded, newBestSolsCoded )
 
+            updateBestPrevGenSolution( population, objective_values, constraint_values)
 
-
-                selectFinalSurvivors!( population,
-                                      offspring,
-                                      objective_values,
-                                      constraint_values,
-                                      objective_values_offspring,
-                                      constraint_values_offspring)
-
-                # update best solutions in generation
-                newBestSolsCoded, best_fitness = trackBestMultipleSolutionsInPopulation(population, prev_best_fitness, objective_values, constraint_values, problem_index)
-                prev_best_fitness = best_fitness
-
-                # place edges
-                placeEdges( bestSolsCoded, newBestSolsCoded )
-
-                updateBestPrevGenSolution( population, objective_values, constraint_values)
-
-                global number_of_generations += 1
-            end
-            success = false
-            if (maximum(objective_values) == vtr)
-                success = true
-            end
-            return objective_values, success
         end
+        success = false
+        if (maximum(objective_values) == vtr)
+            success = true
+        end
+        return objective_values, success
+end
+
+
+function runGA(  problem_index::Int64,
+            number_of_parameters::Int64,
+            population_size::Int64,
+            modelType::String,
+            maximum_number_of_evaluations::Int64,
+            vtr::Float64,
+            fitness_variance_tolerance::Float64,
+            runNumber::Int64
+            )::Tuple{Array{Float64},Bool}
+
+    # set LTGA globals
+    setGlobals(problem_index, number_of_parameters, population_size, modelType)
+
+    const timeStart = now()
+
+    ############# Run
+    const offspring = Array{Bool}(population_size, number_of_parameters)
+    const objective_values = Array{Float64}(population_size)
+    const constraint_values = Array{Float64}(population_size)
+    const objective_values_offspring = Array{Float64}(population_size)
+    const constraint_values_offspring = Array{Float64}(population_size)
+
+
+    const population = randomPopulation(population_size, number_of_parameters)
+    # const population = getUnexploredInitialPopulation(problem_index, population_size, number_of_parameters)
+
+    # Local Search population
+    LocalSearchPopulation!( population, problem_index)
+
+    # initilize LON
+    # constructLON(problem_index, number_of_parameters)
+
+    # evaluate initial population
+    initializeFitnessValues(population, objective_values, constraint_values)
+
+    # generate a fixed model
+    const model = generateModelForTypeAndProblemIndex(modelType, problem_index, number_of_parameters)
+    const model_length = length(model)
+
+    setPointers(population, offspring, objective_values, constraint_values, objective_values_offspring, constraint_values_offspring, model, model_length)
+    # update best solution
+    updateBestPrevGenSolution(population, objective_values, constraint_values)
+
+    # newBestSolsCoded, prev_best_fitness = trackBestMultipleSolutionsInPopulation(population, objective_values, constraint_values, problem_index)
+
+    # global number_of_generations += 1
+
+    while !checkTerminationCondition(maximum_number_of_evaluations, vtr, fitness_variance_tolerance, objective_values, runNumber, timeStart)
+        # update best solutions in generation
+        # bestSolsCoded = copy(newBestSolsCoded)
+
+        writeGenerationalStatistics(runNumber, objective_values)
+        writeGenerationalSolutions(runNumber, false)
+        generateAndEvaluateNewSolutionsToFillOffspring!( population,
+                                                        offspring,
+                                                        objective_values,
+                                                        constraint_values,
+                                                        objective_values_offspring,
+                                                        constraint_values_offspring,
+                                                        model,
+                                                        model_length)
+
+
+
+        selectFinalSurvivors!( population,
+                              offspring,
+                              objective_values,
+                              constraint_values,
+                              objective_values_offspring,
+                              constraint_values_offspring)
+
+        global number_of_generations += 1
+        # update best solutions in generation
+        # newBestSolsCoded, best_fitness = trackBestMultipleSolutionsInPopulation(population, prev_best_fitness, objective_values, constraint_values, problem_index)
+        # prev_best_fitness = best_fitness
+
+        # place edges
+        # placeEdges( bestSolsCoded, newBestSolsCoded )
+
+        updateBestPrevGenSolution( population, objective_values, constraint_values)
+
+    end
+
+    filename = "run-$(runNumber)_total_running_time.dat"
+    writeRunningTime( filename, timeStart )
+
+    writeGenerationalStatistics(runNumber, objective_values)
+    writeGenerationalSolutions(runNumber, true)
+
+    success = false
+    if (maximum(objective_values) == vtr)
+        success = true
+    end
+    return objective_values, success
+end
+
+
+function writeGenerationalStatistics(runNumber::Int64, objective_values::Array{Float64})
+    # Average, best and worst
+    objective_avg = 0.0
+    objective_best   = objective_values[1]
+    objective_worst  = objective_values[1]
+    for i = 1:population_size
+        objective_avg += objective_values[i]
+        if betterFitness( objective_values[i], 0.0, objective_best, 0.0 )
+            objective_best = objective_values[i]
+        end
+        if  betterFitness( objective_worst, 0.0, objective_values[i], 0.0 )
+            objective_worst = objective_values[i]
+        end
+    end
+    objective_avg = objective_avg / population_size
+
+    # variance
+    objective_var = var(objective_values, corrected = false)
+    if objective_var <= 0.0
+        objective_var = 0.0
+    end
+
+    # write to file
+    filename = "run-$(runNumber)_statistics.dat"
+    if number_of_generations == 0
+        file = open(filename, "w")
+        write(file, "# Generation, Evaluations, Average-obj, Variance-obj, Best-obj, Worst-obj, Elite-obj.\n")
+    else
+        file = open(filename, "a")
+    end
+    write(file, "$number_of_generations, $number_of_evaluations, $objective_avg, $objective_var, $objective_best, $objective_worst, $best_prevgen_objective_value\n")
+    close(file)
+end
+
+
+function writeRunningTime(filename::String, timeStart)
+    timeEnd = now()
+    file = open(filename, "w")
+    write(file, "Total number of milliseconds, Total number of evaluations\n")
+    write(file, "$(timeEnd - timeStart), $number_of_evaluations\n")
+    close(file)
+end
+
+function writeGenerationalSolutions(runNumber, is_final_generation::Bool)
+    if is_final_generation
+        filename = "run-$(runNumber)_population_generation_final.dat"
+    else
+        filename = "run-$(runNumber)_population_generation_$(number_of_generations).dat"
+    end
+    file = open(filename, "w")
+    for i = 1:population_size
+        solution = ""
+        for j = 1:number_of_parameters
+            solution *= pop[i,j] ? "1" : "0"
+        end
+        line = "$solution, $(obj_vals[i])\n"
+        write(file, line)
+    end
+    close(file)
+    if (number_of_generations > 0) && !is_final_generation
+        filename = "run-$(runNumber)_offspring_generation_$(number_of_generations).dat"
+        file = open(filename, "w")
+        for i = 1:offspring_size
+            child = ""
+            for j = 1:number_of_parameters
+                child *= off[i,j] ? "1" : "0"
+            end
+            line = "$child, $(obj_vals_off[i])\n"
+            write(file, line)
+        end
+        close(file)
+    end
+    writeGenerationalSolutionsBest(runNumber, is_final_generation)
+end
+
+function writeGenerationalSolutionsBest(runNumber, is_final_generation::Bool)
+    index_of_best = determineBestSolutionInCurrentPopulation(obj_vals, con_vals)
+    if is_final_generation
+        filename = "run-$(runNumber)_best_generation_final.dat"
+    else
+        filename = "run-$(runNumber)_best_generation_$(number_of_generations).dat"
+    end
+    file = open(filename, "w")
+    best = ""
+    for i = 1:number_of_parameters
+        best *= pop[index_of_best, i] ? "1" : "0"
+    end
+    line = "$best, $(obj_vals[index_of_best])\n"
+    write(file, line)
+    close(file)
+end
 
 end
