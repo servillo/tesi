@@ -107,7 +107,6 @@ function runExperiment(idx, N, p, t)
         gc()
     end
 
-    # At this point there are vectors of size t p_s[], Exp_f[] and Avg_f[]
     # compute R2 coefficient for p_s and P_opt
     # compute R2 coefficient for Exp_f and Avg_f
 
@@ -121,8 +120,6 @@ function finalizeWeights(G, runs)
     end
     return weights
 end
-
-
 
 function getStats(G, optimum::String)::Stats
     stats = Stats(0.0, 0, 0.0)
@@ -161,7 +158,7 @@ function runWithFixedSize(size)
     E = Float64[]
     Avg = Float64[]
     stats = Stats[]
-    pops = [3,6,12]
+    pops = [3:12]
     for pop in pops
         a, b, c, d, s= runExperiment(1, size, pop, 50)
         stats = append!(stats, s)
@@ -178,7 +175,7 @@ function runWithFixedPop(pop)
     ps = Float64[]
     E = Float64[]
     Avg = Float64[]
-    nvar = [28, 32, 36, 40]
+    nvar = [28, 32, 36, 40, 44, 48]
     for n in nvar
         a, b, c, d = runExperiment(1, n, pop, 50)
         P = append!(P,a)
@@ -188,15 +185,6 @@ function runWithFixedPop(pop)
     end
     return P, ps, E, Avg
 end
-
-
-
-
-P, ps = runWithFixedSize(40)
-computeR2coefficients(P, ps)
-
-dummy, dummy2, E, Avg = runWithFixedPop(40)
-computeR2coefficients( E, Avg)
 
 
 function assessLTGAperformance(sizes::Array{Int64}, populations::Array{Int64})
@@ -218,28 +206,3 @@ function assessLTGAperformance(sizes::Array{Int64}, populations::Array{Int64})
         cd("..")
     end
 end
-#
-
-
-x
-#
-#
-# function assessLTGAperformance(sizes::Array{Int64}, populations::Array{Int64})
-#     cd("C:\\Users\\Paolo\\Desktop\\tesi\\JULIA-LTGA")
-#     for size in sizes
-#         # mkdir("$(pwd())\\$size vars")
-#         cd("$size vars")
-#         vtr = size / 4
-#         for pop in populations
-#             mkdir("$(pwd())\\population - $pop")
-#             cd("population - $pop")
-#             for i = 1:50
-#                 obj, isSuccessful = runGA(1, size, pop, "lt", 100000, vtr, 0.0, i)
-#                 resetGA()
-#                 gc()
-#             end
-#             cd("..")
-#         end
-#         cd("..")
-#     end
-# end
