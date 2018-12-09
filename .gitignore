@@ -6,3 +6,11 @@ graph\.svg
 lon\.svg
 
 mygraph\.svg
+
+*.svg
+
+TEST,svg
+
+TEST
+
+Ccode/libmean\.so

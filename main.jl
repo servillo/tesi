@@ -1,6 +1,6 @@
 include("includes.jl")
 
-using LTGA
+using LTGA, Classes
 using MetaGraphs, LightGraphs, Graphs
 using DataFrames, GLM, Plots
 using Gadfly, Compose, GraphPlot
@@ -20,7 +20,7 @@ function exploreLandscape(problem_index::Int64, number_of_parameters::Int64, pop
         obj, isSuccessful = runGA(problem_index, number_of_parameters, population_size, "lt", 100000, vtr, 0.0)
         append!(meanFit, obj)
         successes += isSuccessful ? 1 : 0
-        println("Run $runs completed. Best obj, : $(maximum(obj))")
+        # println("Run $runs completed. Best obj, : $(maximum(obj))")
         runs += 1
     end
     resetGA()
@@ -59,14 +59,17 @@ function getIndexOfOptimum(G, opt::String)
 end
 
 function runExperiment(idx, N, p, t)
-    const global_optimum = "$((2^Int(N/4))-1)"
+    global_optimum = "$((2^Int(N/4))-1)"
     # create fitness vector F containing fitnesses of all local optima
     F = createFitnessRowVector(idx, N)
 
+    # Create image dir
+    mkpath("images/$N vars/pop $p")
     Avg_f = Array{Float64}(t)
     Exp_f = Array{Float64}(t)
     P_opt = Array{Float64}(t)
     p_s = Array{Float64}(t)
+    lonStats = Array{Stats}(t)
     # run GA t times
     for i = 1:t
         start = time()
@@ -74,6 +77,15 @@ function runExperiment(idx, N, p, t)
         # gather t pagerank vectors P and t percentages success p_s
         G = LONutility.LON
         P = pagerank(G, 1.0, 10000)
+
+        #adjust weights based on runs
+        weights = finalizeWeights(G, runs)
+
+        # # Draw LON
+        # drawLON(G, N, p, P, weights, i)
+
+        # Get LON stats
+        lonStats[i] = getStats(G, global_optimum)
 
         opt_index = getIndexOfOptimum(G, global_optimum)
 
@@ -92,15 +104,55 @@ function runExperiment(idx, N, p, t)
         println("Run $i completed in $(finish - start) seconds")
         println("Exp Fitness : $(Exp_f[i]), Avg fitness : ", Avg_f[i])
         println("P_opt       : $(P_opt[i]), Success %   : ", p_s[i])
+        gc()
     end
 
     # At this point there are vectors of size t p_s[], Exp_f[] and Avg_f[]
     # compute R2 coefficient for p_s and P_opt
     # compute R2 coefficient for Exp_f and Avg_f
-    # if (p_s == ones(t))
-    #     p_s[1] -= 0.01
-    # end
-    return (P_opt, p_s, Exp_f, Avg_f)
+
+    return (P_opt, p_s, Exp_f, Avg_f, lonStats)
+end
+
+function finalizeWeights(G, runs)
+    weights = Float64[]
+    for e in LightGraphs.edges(G)
+        push!(weights, get_prop(G, e, :weight)/runs)
+    end
+    return weights
+end
+
+
+
+function getStats(G, optimum::String)::Stats
+    stats = Stats(0.0, 0, 0.0)
+    nodes = LightGraphs.vertices(G)
+    opt =  LONutility.findInGraph(G , optimum )
+    for i in nodes
+        if i != opt
+            d = LightGraphs.yen_k_shortest_paths(G, i , opt).dists
+            if length(d) > 0
+                stats.avgPath += d[1]
+            end
+        end
+    end
+    for i in nodes
+        stats.avgInDegree += get_in_degree(G, i)
+    end
+    stats.avgInDegree /= nodes[end]
+    stats.avgPath /= nodes[end]
+    stats.nodes = nodes[end]
+    return stats
+end
+
+function drawLON(G, N, p, P, weights, run)
+    nodesize = [P[v] for v in LightGraphs.vertices(G)]
+    alphas = nodesize/maximum(nodesize)
+    nodelabelsize = 50 + nodesize
+    nodefillc = [RGBA(0.0,0.8,0.8,maximum([.15, i])) for i in alphas]
+    nodelabel = [get_prop(G, i, :optimum) for i = LightGraphs.vertices(G)]
+    layout=(args...)->spring_layout(args...; C=18)
+    draw(SVG("TEST-population-$p.svg", 40cm, 40cm), gplot(G, layout = layout, nodelabel = nodelabel, nodelabelsize=nodelabelsize, nodefillc=nodefillc, EDGELINEWIDTH = 2.0, edgelinewidth = weights ))
 end
 
 function runWithFixedSize(size)
@@ -108,15 +160,17 @@ function runWithFixedSize(size)
     ps = Float64[]
     E = Float64[]
     Avg = Float64[]
-    pops = [2, 4, 8, 12, 20, 40]
+    stats = Stats[]
+    pops = [3,6,12]
     for pop in pops
-        a, b, c, d = runExperiment(1, size, pop, 50)
+        a, b, c, d, s= runExperiment(1, size, pop, 50)
+        stats = append!(stats, s)
         P = append!(P,a)
         ps = append!(ps,b)
         E = append!(E,c)
         Avg = append!(Avg,d)
     end
-    return P, ps, E, Avg
+    return P, ps, E, Avg, stats
 end
 
 function runWithFixedPop(pop)
@@ -164,10 +218,28 @@ function assessLTGAperformance(sizes::Array{Int64}, populations::Array{Int64})
         cd("..")
     end
 end
-
-sizes = [28,32,36,40]
-populations = [4,8,12,20,40]
-assessLTGAperformance(sizes, populations)
+#
 
 
-exploreLandscape(1, 60, 10)
+x
+#
+#
+# function assessLTGAperformance(sizes::Array{Int64}, populations::Array{Int64})
+#     cd("C:\\Users\\Paolo\\Desktop\\tesi\\JULIA-LTGA")
+#     for size in sizes
+#         # mkdir("$(pwd())\\$size vars")
+#         cd("$size vars")
+#         vtr = size / 4
+#         for pop in populations
+#             mkdir("$(pwd())\\population - $pop")
+#             cd("population - $pop")
+#             for i = 1:50
+#                 obj, isSuccessful = runGA(1, size, pop, "lt", 100000, vtr, 0.0, i)
+#                 resetGA()
+#                 gc()
+#             end
+#             cd("..")
+#         end
+#         cd("..")
+#     end
+# end

@@ -6,7 +6,7 @@ using ModelUtility
 using Decoder
 using LocalSearch
 using LONutility
-export runGA, resetGA, setGlobals, installedProblemEvaluation
+export runGA, resetGA, setGlobals, installedProblemEvaluation, randomPopulation
 
 ############## Globals Section
 is_inited                       = false
